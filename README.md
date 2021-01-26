@@ -1,3 +1,3 @@
 # TextEditor
 
-Separated from my repository "Notepad"
+Separated from my repository "Notepad" - Includes only basic functions.
