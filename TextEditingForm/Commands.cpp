@@ -598,7 +598,21 @@ LeftCommand& LeftCommand::operator=(const LeftCommand& source) {
 
 void LeftCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
-		//Ã³¸®´úÇÔ.
+		Long start = this->textEditingForm->selection->GetStart();
+		this->textEditingForm->note->Move(start);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(start);
+		bool isSelected = false;
+		Long i = 0;
+		while (i < this->textEditingForm->current->GetLength() && isSelected == false) {
+			isSelected = this->textEditingForm->current->GetAt(i)->GetIsSelected();
+			i++;
+		}
+		Long startColumn = i-1;
+		if (isSelected == false) {
+			startColumn++;
+		}
+		this->textEditingForm->current->Move(startColumn);
+
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
 		this->textEditingForm->selection = NULL;
@@ -644,6 +658,21 @@ RightCommand& RightCommand::operator=(const RightCommand& source) {
 
 void RightCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
+		Long end = this->textEditingForm->selection->GetEnd();
+		this->textEditingForm->note->Move(end);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(end);
+		bool isSelected = false;
+		Long i = this->textEditingForm->current->GetLength() - 1;
+		while (i >= 0 && isSelected == false) {
+			isSelected = this->textEditingForm->current->GetAt(i)->GetIsSelected();
+			i--;
+		}
+		Long endColumn = i + 2;
+		if (isSelected == false) {
+			endColumn--;
+		}
+		this->textEditingForm->current->Move(endColumn);
+
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
 		this->textEditingForm->selection = NULL;
