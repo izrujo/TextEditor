@@ -1477,16 +1477,8 @@ void ShiftEndCommand::Execute() {
 	Glyph* character;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
-
 	Long index = this->textEditingForm->current->Last();
 	Long row = this->textEditingForm->note->GetCurrent();
-	if (lineCurrent == index) {
-		row = this->textEditingForm->note->Next();
-		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
-		index = this->textEditingForm->current->Last();
-		lineCurrent = 0;
-	}
-
 	Long i = lineCurrent;
 	while (i < index) {
 		character = this->textEditingForm->current->GetAt(i);
