@@ -1546,10 +1546,6 @@ void ShiftCtrlLeftCommand::Execute() {
 
 	row = this->textEditingForm->note->MovePreviousWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
-	while (row >= 0) {
-		row = this->textEditingForm->note->MovePreviousWord();
-		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
-	}
 
 	Long lineNext = this->textEditingForm->current->GetCurrent();
 	Glyph* line;
@@ -1634,10 +1630,6 @@ void ShiftCtrlRightCommand::Execute() {
 
 	row = this->textEditingForm->note->MoveNextWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
-	while (row + 1 < this->textEditingForm->note->GetLength()) {
-		row = this->textEditingForm->note->MoveNextWord();
-		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
-	}
 
 	Long lineNext = this->textEditingForm->current->GetCurrent();
 	Glyph* line;
