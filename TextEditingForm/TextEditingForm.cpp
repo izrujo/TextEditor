@@ -18,7 +18,7 @@
 #include "KeyActions.h"
 #include "resource.h"
 
-BEGIN_MESSAGE_MAP(TextEditingForm, CFrameWnd)
+BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
 	ON_WM_CREATE()
 	ON_WM_CLOSE()
 	ON_WM_CHAR()
@@ -55,7 +55,7 @@ TextEditingForm::TextEditingForm() {
 }
 
 int TextEditingForm::OnCreate(LPCREATESTRUCT lpCreateStruct) {
-	CFrameWnd::OnCreate(lpCreateStruct);
+	CWnd::OnCreate(lpCreateStruct);
 
 	GlyphFactory glyphFactory;
 	this->note = glyphFactory.Make("");
@@ -86,7 +86,7 @@ void TextEditingForm::OnClose() {
 		delete this->selection;
 	}
 
-	CFrameWnd::OnClose();
+	CWnd::OnClose();
 }
 
 void TextEditingForm::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {

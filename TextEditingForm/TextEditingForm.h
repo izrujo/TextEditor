@@ -11,7 +11,7 @@ class CaretController;
 class ScrollController;
 class Selection;
 
-class TextEditingForm : public CFrameWnd, public Subject {
+class TextEditingForm : public CWnd, public Subject {
 public:
 	TextEditingForm();
 	virtual int OnCreate(LPCREATESTRUCT lpCreateStruct);
