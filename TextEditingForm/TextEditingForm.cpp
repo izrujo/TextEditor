@@ -16,6 +16,10 @@
 #include "HScrollActions.h"
 #include "KeyActionFactory.h"
 #include "KeyActions.h"
+#include "HistoryBook.h"
+#include "DummyManager.h"
+#include "FindReplaceDialog.h"
+
 #include "resource.h"
 
 BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
@@ -31,7 +35,9 @@ BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
 	ON_WM_KILLFOCUS()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
-	ON_COMMAND_RANGE(IDC_EDIT_WRITE, IDC_SELECTMOVE_CTRLEND, OnCommandRange)
+	ON_COMMAND_RANGE(IDC_EDIT_WRITE, IDC_EDIT_REPLACE, OnEditCommandRange)
+	ON_COMMAND_RANGE(IDC_BASIC_WRITE, IDC_BASIC_DELETESELECTION, OnBasicCommandRange)
+	ON_COMMAND_RANGE(IDC_MOVE_LEFT, IDC_SELECTMOVE_CTRLEND, OnMoveCommandRange)
 	ON_WM_KEYDOWN()
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
@@ -47,11 +53,23 @@ TextEditingForm::TextEditingForm() {
 	this->caretController = NULL;
 	this->scrollController = NULL;
 	this->selection = NULL;
+	this->undoHistoryBook = NULL;
+	this->redoHistoryBook = NULL;
+	this->findReplaceDialog = NULL;
 
 	this->isComposing = FALSE;
 	this->currentCharacter = '\0';
 	this->currentBuffer[0] = '\0';
 	this->currentBuffer[1] = '\0';
+	this->isLockedHScroll = FALSE;
+	this->isUnlockedHistoryBook = FALSE;
+	this->isUnlockedFindReplaceDialog = FALSE;
+
+	this->previousWidth = 0;
+	this->wasUndo = FALSE;
+	this->wasMove = FALSE;
+	this->isAllReplacing = FALSE;
+	this->isDeleteSelectionByInput = FALSE;
 }
 
 int TextEditingForm::OnCreate(LPCREATESTRUCT lpCreateStruct) {
@@ -65,6 +83,9 @@ int TextEditingForm::OnCreate(LPCREATESTRUCT lpCreateStruct) {
 	this->font = new Font(this);
 
 	this->characterMetrics = new CharacterMetrics(this, this->font);
+
+	this->undoHistoryBook = new HistoryBook(10);
+	this->redoHistoryBook = new HistoryBook(10);
 
 	Long index = this->note->Move(0);
 	this->current = this->note->GetAt(index);
@@ -85,6 +106,15 @@ void TextEditingForm::OnClose() {
 	if (this->selection != NULL) {
 		delete this->selection;
 	}
+	if (this->undoHistoryBook != NULL) {
+		delete this->undoHistoryBook;
+	}
+	if (this->redoHistoryBook != NULL) {
+		delete this->redoHistoryBook;
+	}
+	if (this->findReplaceDialog != NULL) {
+		delete this->findReplaceDialog;
+	}
 
 	CWnd::OnClose();
 }
@@ -93,7 +123,9 @@ void TextEditingForm::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {
 	if (nChar >= 32 || nChar == VK_TAB || nChar == VK_RETURN) {
 		this->currentCharacter = nChar;
 		if (this->selection != NULL) {
+			this->isDeleteSelectionByInput = TRUE;
 			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+			this->isDeleteSelectionByInput = FALSE;
 		}
 		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_WRITE, 0));
 	}
@@ -104,7 +136,9 @@ LRESULT TextEditingForm::OnImeComposition(WPARAM wParam, LPARAM lParam) {
 		this->currentBuffer[0] = (TCHAR)HIBYTE(LOWORD(wParam));
 		this->currentBuffer[1] = (TCHAR)LOBYTE(LOWORD(wParam));
 		if (this->selection != NULL) {
+			this->isDeleteSelectionByInput = TRUE;
 			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+			this->isDeleteSelectionByInput = FALSE;
 		}
 		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_IMECOMPOSITION, 0));
 	}
@@ -170,7 +204,30 @@ void TextEditingForm::OnPaint() {
 	memDC.DeleteDC();
 }
 
-void TextEditingForm::OnSize(UINT nType, int cs, int cy) {
+void TextEditingForm::OnSize(UINT nType, int cx, int cy) {
+	if (this->isLockedHScroll == TRUE && this->previousWidth != cx) {
+		DummyManager dummyManager(this->note, this->characterMetrics, cx);
+
+		Long row = this->note->GetCurrent();
+		Long column = this->current->GetCurrent();
+		Long distance = dummyManager.CountDistance(row, column);
+		Long i = 0;
+		while (i < this->note->GetLength()) {
+			dummyManager.Unfold(i);
+			i++;
+		}
+		i = 0;
+		while (i < this->note->GetLength()) {
+			i = dummyManager.Fold(i);
+			i++;
+		}
+		dummyManager.CountIndex(distance, &row, &column);
+		this->note->Move(row);
+		this->current = this->note->GetAt(row);
+		this->current->Move(column);
+	}
+	this->previousWidth = cx; //불필요한 개행처리를 막기 위함(사용자의 윈도우 크기 조정만 개행처리 하기 위함)
+
 	if (this->scrollController == NULL) {
 		this->scrollController = new ScrollController(this);
 	}
@@ -205,6 +262,8 @@ void TextEditingForm::OnLButtonDown(UINT nFlag, CPoint point) {
 	this->current = this->note->GetAt(index);
 	Long column = this->characterMetrics->GetColumn(this->current, this->scrollController->GetHorizontalScroll()->GetPosition() + point.x);
 	Long lineIndex = this->current->Move(column);
+
+	this->wasMove = TRUE;
 
 	//선택하다 추가
 	if (nFlag != 5) {
@@ -380,11 +439,59 @@ void TextEditingForm::OnMouseMove(UINT nFlag, CPoint point) {
 	}
 }
 
-void TextEditingForm::OnCommandRange(UINT uID) {
+void TextEditingForm::OnEditCommandRange(UINT uID) {
 	CommandFactory commandFactory(this);
 	Command* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
+
+		//========== 실행 취소 추가 ==========
+		if (this->isUnlockedHistoryBook == TRUE) {
+			string type = command->GetType();
+			//1. Undo아니고 Redo아니고 Find아니고 Replace아니고
+			//1.1. DeleteSelection이면
+			//1.1.1. 실행취소이력이있으면서가장최근이력이매크로이고 방금실행취소를안했으면서방금이동을안했거나 지금모두바꾸기중이면
+			//1.1.1.1. (매크로에) 현재 커맨드를 추가하다.
+			//1.1.2. 실행취소이력이없거나 방금실행취소를했거나방금이동을했고 지금모두바꾸기중이아니면
+			//1.1.2.1. 매크로를 만들어서 커맨드를 추가하고 그 매크로를 실행취소이력으로 쓴다.
+			//1.1.2.2. 실행취소안했다고 그리고 움직이지않았다고 기억해둔다.
+			//1.2. deleteSelection아니면
+			//1.2.1. (매크로든아니든)실행취소이력으로 쓴다.
+			//1.3. 다시실행이력이 있으면 다시실행이력을 다 지운다.
+			//2. Undo면 실행취소했다고 기억해둔다.
+			if (type != "ImeComposition"
+				&& type != "Undo" && type != "Redo" && type != "Copy" && type != "Cut" && type != "SelectAll"
+				&& type != "Find" && type != "Replace") {
+				if ((type == "Write" && this->currentCharacter != VK_RETURN)
+					|| type == "ImeChar" || type == "Paste"
+					|| (type == "DeleteSelection" && this->isDeleteSelectionByInput == TRUE)) {
+					Command* history;
+					if (this->undoHistoryBook->GetLength() > 0 && this->undoHistoryBook->OpenAt()->GetType() == "Macro"
+						&& (this->wasUndo == FALSE && this->wasMove == FALSE) || this->isAllReplacing == TRUE) {
+						history = this->undoHistoryBook->OpenAt();
+						history->Add(command->Clone());
+					}
+					else {
+						history = new MacroCommand(this);
+						history->Add(command->Clone());
+						this->undoHistoryBook->Write(history);
+						this->wasUndo = FALSE;
+						this->wasMove = FALSE;
+					}
+				}
+				else {
+					this->undoHistoryBook->Write(command->Clone());
+				}
+				if (this->redoHistoryBook->GetLength() > 0) {
+					this->redoHistoryBook->Empty();
+				}
+			}
+			if (type == "Undo") {
+				this->wasUndo = TRUE;
+			}
+		}
+		//========== 실행 취소 추가 ==========
+
 		delete command;
 	}
 
@@ -401,9 +508,48 @@ void TextEditingForm::OnCommandRange(UINT uID) {
 	this->scrollController->SmartScrollToPoint(x, y);
 }
 
+void TextEditingForm::OnBasicCommandRange(UINT uID) {
+	CommandFactory commandFactory(this);
+	Command* command = commandFactory.Make(uID);
+	if (command != NULL) {
+		command->Execute();
+
+		delete command;
+	}
+}
+
+void TextEditingForm::OnMoveCommandRange(UINT uID) {
+	CommandFactory commandFactory(this);
+	Command* command = commandFactory.Make(uID);
+	if (command != NULL) {
+		command->Execute();
+		this->wasMove = TRUE;
+
+		delete command;
+	}
+
+	if (this->scrollController != NULL) {
+		delete this->scrollController;
+	}
+	this->scrollController = new ScrollController(this);
+
+	Long x = this->characterMetrics->GetX(this->current) + 1; // 
+	Long y = this->characterMetrics->GetY(this->note->GetCurrent() + 1); // 0베이스이므로 1더함
+	this->scrollController->SmartScrollToPoint(x, y);
+
+	this->Notify();
+	this->Invalidate();
+}
+
 void TextEditingForm::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
 	KeyActionFactory keyActionFactory(this);
 	KeyAction* keyAction = keyActionFactory.Make(nChar);
+
+	if ((this->note->IsFirst() == true && nChar == VK_BACK)
+		|| (this->note->IsLast() == true && nChar == VK_DELETE)) {
+		delete keyAction;
+		keyAction = 0;
+	}
 
 	if (keyAction != 0) {
 		keyAction->OnKeyDown(nChar, nRepCnt, nFlags);
@@ -455,4 +601,46 @@ BOOL TextEditingForm::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
 
 BOOL TextEditingForm::OnEraseBkgnd(CDC* pDC) {
 	return TRUE;
+}
+
+LRESULT TextEditingForm::OnFindReplace(WPARAM wParam, LPARAM lParam) {
+	UNREFERENCED_PARAMETER(wParam);
+
+	if (this->findReplaceDialog != NULL) {		
+		CString messageText;
+		BOOL isFindSuccess;
+		if (this->findReplaceDialog->FindNext()) {
+			isFindSuccess = this->findReplaceDialog->Find();
+			if (isFindSuccess == FALSE) {
+				messageText.Format("\"%s\"을(를) 찾을 수 없습니다.", this->findReplaceDialog->GetFindString());
+				MessageBox((LPCTSTR)messageText, "메모장", MB_OK);
+			}
+		}
+		else if (this->findReplaceDialog->ReplaceCurrent()) {
+			this->findReplaceDialog->Replace();
+			isFindSuccess = this->findReplaceDialog->Find();
+			if (isFindSuccess == FALSE) {
+				messageText.Format("\"%s\"을(를) 찾을 수 없습니다.", this->findReplaceDialog->GetFindString());
+				MessageBox((LPCTSTR)messageText, "메모장", MB_OK);
+			}
+		}
+		else if (this->findReplaceDialog->ReplaceAll()) {
+			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_MOVE_CTRLHOME, 0));
+			isFindSuccess = this->findReplaceDialog->Find();
+			while (isFindSuccess == TRUE) {
+				this->findReplaceDialog->Replace();
+				this->isAllReplacing = TRUE;
+				isFindSuccess = this->findReplaceDialog->Find();
+			}
+			this->isAllReplacing = FALSE;
+		}
+		else if (this->findReplaceDialog->IsTerminating()) {
+			this->findReplaceDialog = NULL; //No memory leak detected although do not call DestroyWindow() or destructor
+		}
+
+		this->Notify();
+		this->Invalidate();
+	}
+
+	return 0;
 }

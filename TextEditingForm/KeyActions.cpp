@@ -688,3 +688,157 @@ CtrlXKeyAction& CtrlXKeyAction::operator =(const CtrlXKeyAction& source) {
 
 	return *this;
 }
+
+//CtrlZKeyAction
+CtrlZKeyAction::CtrlZKeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlZKeyAction::CtrlZKeyAction(const CtrlZKeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlZKeyAction::~CtrlZKeyAction() {
+}
+
+void CtrlZKeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_UNDO, 0));
+}
+
+CtrlZKeyAction& CtrlZKeyAction::operator =(const CtrlZKeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlYKeyAction
+CtrlYKeyAction::CtrlYKeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlYKeyAction::CtrlYKeyAction(const CtrlYKeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlYKeyAction::~CtrlYKeyAction() {
+}
+
+void CtrlYKeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_REDO, 0));
+}
+
+CtrlYKeyAction& CtrlYKeyAction::operator =(const CtrlYKeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlFKeyAction
+CtrlFKeyAction::CtrlFKeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlFKeyAction::CtrlFKeyAction(const CtrlFKeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlFKeyAction::~CtrlFKeyAction() {
+}
+
+void CtrlFKeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_FIND, 0));
+}
+
+CtrlFKeyAction& CtrlFKeyAction::operator =(const CtrlFKeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlHKeyAction
+CtrlHKeyAction::CtrlHKeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlHKeyAction::CtrlHKeyAction(const CtrlHKeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlHKeyAction::~CtrlHKeyAction() {
+}
+
+void CtrlHKeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_REPLACE, 0));
+}
+
+CtrlHKeyAction& CtrlHKeyAction::operator =(const CtrlHKeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlF1KeyAction
+CtrlF1KeyAction::CtrlF1KeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlF1KeyAction::CtrlF1KeyAction(const CtrlF1KeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlF1KeyAction::~CtrlF1KeyAction() {
+}
+
+void CtrlF1KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SetIsLockedHScroll(TRUE);
+}
+
+CtrlF1KeyAction& CtrlF1KeyAction::operator =(const CtrlF1KeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlF2KeyAction
+CtrlF2KeyAction::CtrlF2KeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlF2KeyAction::CtrlF2KeyAction(const CtrlF2KeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlF2KeyAction::~CtrlF2KeyAction() {
+}
+
+void CtrlF2KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SetIsUnlockedHistoryBook(TRUE);
+}
+
+CtrlF2KeyAction& CtrlF2KeyAction::operator =(const CtrlF2KeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}
+
+//CtrlF3KeyAction
+CtrlF3KeyAction::CtrlF3KeyAction(TextEditingForm* textEditingForm)
+	: KeyAction(textEditingForm) {
+}
+
+CtrlF3KeyAction::CtrlF3KeyAction(const CtrlF3KeyAction& source)
+	: KeyAction(source) {
+}
+
+CtrlF3KeyAction::~CtrlF3KeyAction() {
+}
+
+void CtrlF3KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SetIsUnlockedFindReplaceDialog(TRUE);
+}
+
+CtrlF3KeyAction& CtrlF3KeyAction::operator =(const CtrlF3KeyAction& source) {
+	KeyAction::operator =(source);
+
+	return *this;
+}

@@ -9,6 +9,9 @@
 #include "CaretController.h"
 #include "ScrollController.h"
 #include "Scroll.h"
+#include "HistoryBook.h"
+#include "FindReplaceDialog.h"
+#include "DummyManager.h"
 
 #include <afxwin.h>
 
@@ -32,28 +35,162 @@ Command& Command::operator=(const Command& source) {
 	return *this;
 }
 
-//WriteCommand
-WriteCommand::WriteCommand(TextEditingForm* textEditingForm)
+void Command::Unexecute() {
+
+}
+
+Long Command::Add(Command* command) {
+	return -1;
+}
+
+Long Command::Remove(Long index) {
+	return -1;
+}
+
+Command* Command::GetAt(Long index) {
+	return 0;
+}
+
+Long Command::GetCapacity() const {
+	return 0;
+}
+
+Long Command::GetLength() const {
+	return -1;
+}
+
+//////////////////// Composite ////////////////////
+//MacroCommand
+MacroCommand::MacroCommand(TextEditingForm* textEditingForm, Long capacity)
+	: Command(textEditingForm), commands(10) {
+	this->capacity = 10;
+	this->length = 0;
+}
+
+MacroCommand::MacroCommand(const MacroCommand& source)
+	: Command(source.textEditingForm), commands(source.capacity) {
+	Command* command;
+	Long i = 0;
+	while (i < source.length) {
+		command = const_cast<MacroCommand&>(source).commands[i]->Clone();
+		this->commands.Store(i, command);
+		i++;
+	}
+	this->capacity = source.capacity;
+	this->length = source.length;
+}
+
+MacroCommand::~MacroCommand() {
+	Long i = 0;
+	while (i < this->length) {
+		if (this->commands[i] != 0) {
+			delete this->commands[i];
+		}
+		i++;
+	}
+}
+
+MacroCommand& MacroCommand::operator=(const MacroCommand& source) {
+	Command::operator=(source);
+	Long i = 0;
+	while (i < this->length) {
+		if (this->commands[i] != 0) {
+			delete this->commands[i];
+		}
+		i++;
+	}
+
+	this->commands = source.commands;
+	this->capacity = source.capacity;
+
+	i = 0;
+	while (i < this->length) {
+		this->commands.Modify(i, const_cast<MacroCommand&>(source).commands[i]->Clone());
+		i++;
+	}
+
+	this->length = source.length;
+
+	return *this;
+}
+
+void MacroCommand::Execute() {
+	Long i = 0;
+	while (i < this->length) {
+		this->commands[i]->Execute();
+		i++;
+	}
+}
+
+void MacroCommand::Unexecute() {
+	Long i = this->length - 1;
+	while (i >= 0) {
+		this->commands[i]->Unexecute();
+		i--;
+	}
+}
+
+Long MacroCommand::Add(Command* command) {
+	Long index;
+	if (this->length < this->capacity) {
+		index = this->commands.Store(this->length, command);
+	}
+	else {
+		index = this->commands.AppendFromRear(command);
+		this->capacity++;
+	}
+	this->length++;
+
+	return index;
+}
+
+Long MacroCommand::Remove(Long index) {
+	if (this->commands[index] != 0) {
+		delete this->commands.GetAt(index);
+	}
+	index = this->commands.Delete(index);
+	this->capacity--;
+	this->length--;
+
+	return index;
+}
+
+Command* MacroCommand::GetAt(Long index) {
+	return this->commands.GetAt(index);
+}
+
+string MacroCommand::GetType() {
+	return "Macro";
+}
+
+Command* MacroCommand::Clone() {
+	return new MacroCommand(*this);
+}
+//////////////////// Composite ////////////////////
+
+//////////////////// Basic ////////////////////
+//WriteBasicCommand
+WriteBasicCommand::WriteBasicCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
 
 }
 
-WriteCommand::WriteCommand(const WriteCommand& source)
+WriteBasicCommand::WriteBasicCommand(const WriteBasicCommand& source)
 	: Command(source) {
 
 }
 
-WriteCommand::~WriteCommand() {
+WriteBasicCommand::~WriteBasicCommand() {
 
 }
 
-WriteCommand& WriteCommand::operator=(const WriteCommand& source) {
+WriteBasicCommand& WriteBasicCommand::operator=(const WriteBasicCommand& source) {
 	Command::operator=(source);
 
 	return *this;
 }
 
-void WriteCommand::Execute() {
+void WriteBasicCommand::Execute() {
 	GlyphFactory glyphFactory;
 	TCHAR content[2];
 	int nChar = this->textEditingForm->GetCurrentCharacter();
@@ -82,6 +219,441 @@ void WriteCommand::Execute() {
 			this->textEditingForm->note->Add(row + 1, this->textEditingForm->current);
 		}
 	}
+}
+
+string WriteBasicCommand::GetType() {
+	return "WriteBasic";
+}
+
+Command* WriteBasicCommand::Clone() {
+	return new WriteBasicCommand(*this);
+}
+
+//ImeCompositionBasicCommand
+ImeCompositionBasicCommand::ImeCompositionBasicCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+ImeCompositionBasicCommand::ImeCompositionBasicCommand(const ImeCompositionBasicCommand& source)
+	: Command(source) {
+
+}
+
+ImeCompositionBasicCommand::~ImeCompositionBasicCommand() {
+
+}
+
+ImeCompositionBasicCommand& ImeCompositionBasicCommand::operator=(const ImeCompositionBasicCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void ImeCompositionBasicCommand::Execute() {
+	TCHAR(*buffer) = new TCHAR[2];
+	buffer = this->textEditingForm->GetCurrentBuffer();
+
+	Long index;
+
+	if (this->textEditingForm->GetIsComposing() == TRUE) {
+		index = this->textEditingForm->current->GetCurrent();
+		this->textEditingForm->current->Remove(index - 1);
+	}
+
+	if (buffer[0] != '\0') {
+		this->textEditingForm->SetIsComposing(TRUE);
+		GlyphFactory glyphFactory;
+		Glyph* doubleByteCharacter = glyphFactory.Make(buffer);
+		index = this->textEditingForm->current->GetCurrent();
+
+		if (index >= this->textEditingForm->current->GetLength()) {
+			this->textEditingForm->current->Add(doubleByteCharacter);
+		}
+		else {
+			this->textEditingForm->current->Add(index, doubleByteCharacter);
+		}
+	}
+	else {
+		this->textEditingForm->SetIsComposing(FALSE);
+	}
+}
+
+string ImeCompositionBasicCommand::GetType() {
+	return "ImeCompositionBasic";
+}
+
+Command* ImeCompositionBasicCommand::Clone() {
+	return new ImeCompositionBasicCommand(*this);
+}
+
+//ImeCharBasicCommand
+ImeCharBasicCommand::ImeCharBasicCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+ImeCharBasicCommand::ImeCharBasicCommand(const ImeCharBasicCommand& source)
+	: Command(source) {
+
+}
+
+ImeCharBasicCommand::~ImeCharBasicCommand() {
+
+}
+
+ImeCharBasicCommand& ImeCharBasicCommand::operator=(const ImeCharBasicCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void ImeCharBasicCommand::Execute() {
+	TCHAR buffer[2];
+	buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
+	buffer[1] = this->textEditingForm->GetCurrentBuffer()[1];
+	Long column = this->textEditingForm->current->GetCurrent();
+
+	if (this->textEditingForm->GetIsComposing() == TRUE) {
+		this->textEditingForm->current->Remove(column);
+	}
+
+	GlyphFactory glyphFactory;
+	Glyph* glyph = glyphFactory.Make(buffer);
+
+	if (column >= this->textEditingForm->current->GetLength()) {
+		this->textEditingForm->current->Add(glyph);
+	}
+	else {
+		this->textEditingForm->current->Add(column, glyph);
+	}
+}
+
+string ImeCharBasicCommand::GetType() {
+	return "ImeCharBasic";
+}
+
+Command* ImeCharBasicCommand::Clone() {
+	return new ImeCharBasicCommand(*this);
+}
+
+//DeleteBasicCommand
+DeleteBasicCommand::DeleteBasicCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+DeleteBasicCommand::DeleteBasicCommand(const DeleteBasicCommand& source)
+	: Command(source) {
+
+}
+
+DeleteBasicCommand::~DeleteBasicCommand() {
+
+}
+
+DeleteBasicCommand& DeleteBasicCommand::operator=(const DeleteBasicCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void DeleteBasicCommand::Execute() {
+	Long row = this->textEditingForm->note->GetCurrent();
+	Long column = this->textEditingForm->current->GetCurrent();
+	Long noteLength = this->textEditingForm->note->GetLength();
+	Long lineLength = this->textEditingForm->current->GetLength();
+
+	if (column < lineLength) {
+		this->textEditingForm->current->Remove(column);
+	}
+	else if (column >= lineLength && row < noteLength - 1) {
+		Glyph* other = this->textEditingForm->note->GetAt(row + 1);
+		this->textEditingForm->current->Combine(other);
+		this->textEditingForm->note->Remove(row + 1);
+	}
+}
+
+string DeleteBasicCommand::GetType() {
+	return "DeleteBasic";
+}
+
+Command* DeleteBasicCommand::Clone() {
+	return new DeleteBasicCommand(*this);
+}
+
+//CopyBasicCommand
+CopyBasicCommand::CopyBasicCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+CopyBasicCommand::CopyBasicCommand(const CopyBasicCommand& source)
+	: Command(source) {
+
+}
+
+CopyBasicCommand::~CopyBasicCommand() {
+
+}
+
+CopyBasicCommand& CopyBasicCommand::operator=(const CopyBasicCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void CopyBasicCommand::Execute() {
+	if (this->textEditingForm->selection != NULL) {
+		Long start = this->textEditingForm->selection->GetStart();
+		Long end = this->textEditingForm->selection->GetEnd();
+		CString clipBoard;
+		string content;
+		Glyph* line;
+		Glyph* character;
+		Long column = 0;
+		Long j;
+		Long i = start;
+		while (i <= end) {
+			content = "";
+			line = this->textEditingForm->note->GetAt(i);
+			j = 0;
+			while (j < line->GetLength()) {
+				character = line->GetAt(j);
+				if (character->GetIsSelected()) {
+					column = j + 1;
+					content += character->GetContent();
+				}
+				j++;
+			}
+
+			if (column >= line->GetLength()) {
+				content.append("\r\n");
+			}
+			clipBoard.Append(content.c_str());
+			i++;
+		}
+
+		HANDLE handle = 0;
+		char* address = NULL;
+		handle = ::GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, clipBoard.GetLength() + 1);
+		address = (char*)::GlobalLock(handle);
+		if (address == NULL) {
+			::GlobalFree(handle);
+		}
+		else {
+			strcpy(address, clipBoard);
+		}
+		if (::OpenClipboard(this->textEditingForm->m_hWnd)) {
+			::EmptyClipboard();
+			::SetClipboardData(CF_TEXT, handle);
+			::CloseClipboard();
+		}
+		::GlobalUnlock(handle);
+	}
+}
+
+string CopyBasicCommand::GetType() {
+	return "CopyBasic";
+}
+
+Command* CopyBasicCommand::Clone() {
+	return new CopyBasicCommand(*this);
+}
+
+//DeleteSelectionBasicCommand
+DeleteSelectionBasicCommand::DeleteSelectionBasicCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+DeleteSelectionBasicCommand::DeleteSelectionBasicCommand(const DeleteSelectionBasicCommand& source)
+	: Command(source) {
+
+}
+
+DeleteSelectionBasicCommand::~DeleteSelectionBasicCommand() {
+
+}
+
+DeleteSelectionBasicCommand& DeleteSelectionBasicCommand::operator=(const DeleteSelectionBasicCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void DeleteSelectionBasicCommand::Execute() {
+	Long i;
+	Long start = this->textEditingForm->selection->GetStart();
+	Long end = this->textEditingForm->selection->GetEnd();
+	Glyph* character;
+	Glyph* line;
+	Long j;
+	i = start;
+	while (i <= end) {
+		line = this->textEditingForm->note->GetAt(i);
+		j = 0;
+		while (j < line->GetLength()) {
+			character = line->GetAt(j);
+			if (character->GetIsSelected()) {
+				line->Remove(j--);
+			}
+			j++;
+		}
+		if (j >= line->GetLength() && i < end) {
+			this->textEditingForm->current = line->Combine(this->textEditingForm->note->GetAt(i + 1));
+			this->textEditingForm->note->Remove(i + 1);
+			i--;
+			end--;
+		}
+		i++;
+	}
+
+	this->textEditingForm->note->Move(start);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(start);
+
+	if (this->textEditingForm->selection != NULL) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = NULL;
+		this->textEditingForm->note->UnselectAll();
+	}
+}
+
+string DeleteSelectionBasicCommand::GetType() {
+	return "DeleteSelectionBasic";
+}
+
+Command* DeleteSelectionBasicCommand::Clone() {
+	return new DeleteSelectionBasicCommand(*this);
+}
+//////////////////// Basic ////////////////////
+
+//////////////////// Main ////////////////////
+//WriteCommand
+WriteCommand::WriteCommand(TextEditingForm * textEditingForm)
+	: Command(textEditingForm) {
+	this->nChar = -1;
+	this->row = -1;
+	this->column = -1;
+}
+
+WriteCommand::WriteCommand(const WriteCommand& source)
+	: Command(source) {
+	this->nChar = source.nChar;
+	this->row = source.row;
+	this->column = source.column;
+}
+
+WriteCommand::~WriteCommand() {
+
+}
+
+WriteCommand& WriteCommand::operator=(const WriteCommand& source) {
+	Command::operator=(source);
+	this->nChar = source.nChar;
+	this->row = source.row;
+	this->column = source.column;
+
+	return *this;
+}
+
+void WriteCommand::Execute() {
+	if (this->nChar == -1 && this->row == -1 && this->column == -1) {
+		this->nChar = this->textEditingForm->GetCurrentCharacter();
+		this->row = this->textEditingForm->note->GetCurrent();
+		this->column = this->textEditingForm->current->GetCurrent();
+	}
+	else {
+		this->textEditingForm->SetCurrentCharacter(this->nChar);
+	}
+
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		distance = dummyManager->CountDistance(this->row, this->column);
+		this->row = dummyManager->Unfold(this->row);
+		dummyManager->CountIndex(distance, &this->row, &this->column);
+	}
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_WRITE, 0));
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		Long lastFoldedRow = dummyManager->Fold(this->row);
+		if (this->nChar == VK_RETURN) {
+			dummyManager->Fold(lastFoldedRow + 1);
+		}
+		dummyManager->CountIndex(distance + 1, &rowIndex, &columnIndex);
+
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+void WriteCommand::Unexecute() {
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long unfoldedRow = dummyManager->Unfold(this->row);
+		if (this->nChar == VK_RETURN) {
+			dummyManager->Unfold(unfoldedRow + 1);
+		}
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	Glyph* index;
+	if (this->nChar >= 32 || this->nChar == VK_TAB) {
+		this->textEditingForm->current->Remove(this->column);
+	}
+	else if (this->nChar == VK_RETURN) {
+		index = this->textEditingForm->note->GetAt(this->textEditingForm->note->GetCurrent() + 1);
+		this->textEditingForm->current->Combine(index);
+		this->textEditingForm->note->Remove(this->textEditingForm->note->GetCurrent() + 1);
+		this->textEditingForm->current->Move(this->column);
+	}
+	if (this->textEditingForm->selection != NULL) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = NULL;
+		this->textEditingForm->note->UnselectAll();
+	}
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->row);
+		distance = dummyManager->CountDistance(this->row, this->column);
+		dummyManager->CountIndex(distance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
 }
 
 string WriteCommand::GetType() {
@@ -117,29 +689,45 @@ void ImeCompositionCommand::Execute() {
 	TCHAR(*buffer) = new TCHAR[2];
 	buffer = this->textEditingForm->GetCurrentBuffer();
 
-	Long index;
+	Long row = this->textEditingForm->note->GetCurrent();
+	Long column = this->textEditingForm->current->GetCurrent();
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance = 0;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+
+		distance = dummyManager->CountDistance(row, column);
+		row = dummyManager->Unfold(row);
+		dummyManager->CountIndex(distance, &row, &column);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+	this->textEditingForm->current->Move(column);
 
 	if (this->textEditingForm->GetIsComposing() == TRUE) {
-		index = this->textEditingForm->current->GetCurrent();
-		this->textEditingForm->current->Remove(index - 1);
+		distance--; //자동개행 추가
 	}
 
-	if (buffer[0] != '\0') {
-		this->textEditingForm->SetIsComposing(TRUE);
-		GlyphFactory glyphFactory;
-		Glyph* doubleByteCharacter = glyphFactory.Make(buffer);
-		index = this->textEditingForm->current->GetCurrent();
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_IMECOMPOSITION, 0));
 
-		if (index >= this->textEditingForm->current->GetLength()) {
-			this->textEditingForm->current->Add(doubleByteCharacter);
-		}
-		else {
-			this->textEditingForm->current->Add(index, doubleByteCharacter);
-		}
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(row);
+		dummyManager->CountIndex(distance + 1, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
 	}
-	else {
-		this->textEditingForm->SetIsComposing(FALSE);
-	}
+	//========== 자동 개행 처리 2 ==========
 }
 
 string ImeCompositionCommand::GetType() {
@@ -153,42 +741,135 @@ Command* ImeCompositionCommand::Clone() {
 //ImeCharCommand
 ImeCharCommand::ImeCharCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
+	this->buffer = new TCHAR[2];
+	this->buffer[0] = '\0';
+	this->buffer[1] = '\0';
+	this->row = -1;
+	this->column = -1;
 }
 
 ImeCharCommand::ImeCharCommand(const ImeCharCommand& source)
 	: Command(source) {
-
+	this->buffer = new TCHAR[2];
+	this->buffer[0] = source.buffer[0];
+	this->buffer[1] = source.buffer[1];
+	this->row = source.row;
+	this->column = source.column;
 }
 
 ImeCharCommand::~ImeCharCommand() {
-
+	if (this->buffer != 0) {
+		delete[] this->buffer;
+	}
 }
 
 ImeCharCommand& ImeCharCommand::operator=(const ImeCharCommand& source) {
 	Command::operator=(source);
+	if (this->buffer != 0) {
+		delete[] this->buffer;
+	}
+	this->buffer = new TCHAR[2];
+	this->buffer[0] = source.buffer[0];
+	this->buffer[1] = source.buffer[1];
+	this->row = source.row;
+	this->column = source.column;
 
 	return *this;
 }
 
 void ImeCharCommand::Execute() {
-	TCHAR buffer[2];
-	buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
-	buffer[1] = this->textEditingForm->GetCurrentBuffer()[1];
-	Long column = this->textEditingForm->current->GetCurrent();
-
-	if (this->textEditingForm->GetIsComposing() == TRUE) {
-		this->textEditingForm->current->Remove(--column);
-	}
-
-	GlyphFactory glyphFactory;
-	Glyph* glyph = glyphFactory.Make(buffer);
-
-	if (column >= this->textEditingForm->current->GetLength()) {
-		this->textEditingForm->current->Add(glyph);
+	bool needtoRemove = false;
+	if (this->buffer[0] == '\0' && this->row == -1 && this->column == -1) {
+		this->buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
+		this->buffer[1] = this->textEditingForm->GetCurrentBuffer()[1];
+		this->row = this->textEditingForm->note->GetCurrent();
+		this->column = this->textEditingForm->current->GetCurrent();
+		if (this->textEditingForm->GetIsComposing() == TRUE) {
+			needtoRemove = true;
+		}
 	}
 	else {
-		this->textEditingForm->current->Add(column, glyph);
+		this->textEditingForm->SetCurrentBuffer(this->buffer);
+	}
+
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance = 0;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		distance = dummyManager->CountDistance(this->row, this->column);
+		this->row = dummyManager->Unfold(this->row);
+		dummyManager->CountIndex(distance, &this->row, &this->column);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	if (needtoRemove == true) {
+		this->column--;
+	}
+	else {
+		distance++;
+	}
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_IMECHAR, 0));
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->row);
+		dummyManager->CountIndex(distance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+void ImeCharCommand::Unexecute() {
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		dummyManager->Unfold(this->row);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	this->textEditingForm->current->Remove(this->column);
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->row);
+		distance = dummyManager->CountDistance(this->row, this->column);
+		dummyManager->CountIndex(distance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
+
+	if (this->textEditingForm->selection != NULL) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = NULL;
+		this->textEditingForm->note->UnselectAll();
 	}
 }
 
@@ -203,38 +884,152 @@ Command* ImeCharCommand::Clone() {
 //DeleteCommand
 DeleteCommand::DeleteCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
+	this->row = -1;
+	this->noteLength = -1;
+	this->column = -1;
+	this->lineLength = -1;
+	this->character = 0;
 }
 
 DeleteCommand::DeleteCommand(const DeleteCommand& source)
 	: Command(source) {
-
+	this->row = source.row;
+	this->noteLength = source.noteLength;
+	this->column = source.column;
+	this->lineLength = source.lineLength;
+	this->character = 0;
+	if (source.character != 0) {
+		this->character = source.character->Clone();
+	}
 }
 
 DeleteCommand::~DeleteCommand() {
-
+	if (this->character != NULL) {
+		delete this->character;
+	}
 }
 
 DeleteCommand& DeleteCommand::operator=(const DeleteCommand& source) {
 	Command::operator=(source);
+	this->row = source.row;
+	this->noteLength = source.noteLength;
+	this->column = source.column;
+	this->lineLength = source.lineLength;
+	this->character = 0;
+	if (source.character != 0) {
+		this->character = source.character->Clone();
+	}
 
 	return *this;
 }
 
 void DeleteCommand::Execute() {
-	Long row = this->textEditingForm->note->GetCurrent();
-	Long column = this->textEditingForm->current->GetCurrent();
-	Long noteLength = this->textEditingForm->note->GetLength();
-	Long lineLength = this->textEditingForm->current->GetLength();
+	if (this->row == -1 && this->noteLength == -1 && this->column == -1 && this->lineLength == -1 && this->character == 0) {
+		this->row = this->textEditingForm->note->GetCurrent();
+		this->noteLength = this->textEditingForm->note->GetLength();
+		this->column = this->textEditingForm->current->GetCurrent();
+		this->lineLength = this->textEditingForm->current->GetLength();
+		this->character = 0;
+		if (this->column < this->textEditingForm->current->GetLength()) {
+			this->character = this->textEditingForm->current->GetAt(this->column)->Clone();
+		}
+	}
 
-	if (column < lineLength) {
-		this->textEditingForm->current->Remove(column);
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		distance = dummyManager->CountDistance(this->row, this->column);
+		this->row = dummyManager->Unfold(this->row);
+		dummyManager->CountIndex(distance, &this->row, &this->column);
+		if (this->character == 0 && this->column >= this->textEditingForm->note->GetAt(this->row)->GetLength()
+			&& this->row + 1 < this->textEditingForm->note->GetLength() - 1) {
+			dummyManager->Unfold(this->row + 1);
+		}
+		this->noteLength = this->textEditingForm->note->GetLength();
+		this->lineLength = this->textEditingForm->note->GetAt(this->row)->GetLength();
+		if (this->column < this->lineLength) {
+			this->character = this->textEditingForm->note->GetAt(this->row)->GetAt(this->column)->Clone();
+		}
 	}
-	else if (column >= lineLength && row < noteLength - 1) {
-		Glyph* other = this->textEditingForm->note->GetAt(row + 1);
-		this->textEditingForm->current->Combine(other);
-		this->textEditingForm->note->Remove(row + 1);
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_DELETE, 0));
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->row);
+		dummyManager->CountIndex(distance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
 	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+void DeleteCommand::Unexecute() {
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		dummyManager->Unfold(this->row);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	Glyph* line;
+	if (this->column < this->lineLength) {
+		this->character->Select(false);
+		this->textEditingForm->current->Add(this->column, this->character->Clone());
+	}
+	else if (this->column >= this->lineLength && this->row < this->noteLength - 1) {
+		if (this->character == 0) {
+			line = this->textEditingForm->current->Divide(this->column);
+			this->textEditingForm->note->Add(this->row + 1, line);
+		}
+		else {
+			this->character->Select(false);
+			this->textEditingForm->current->Add(this->column, this->character->Clone());
+		}
+	}
+	this->textEditingForm->note->Move(this->row);
+	this->textEditingForm->current->Move(this->column);
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		Long lastFoldedRow = dummyManager->Fold(this->row);
+		if (this->character == 0) {
+			dummyManager->Fold(lastFoldedRow + 1);
+		}
+
+		distance = dummyManager->CountDistance(this->row, this->column);
+		dummyManager->CountIndex(distance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
 }
 
 string DeleteCommand::GetType() {
@@ -243,6 +1038,540 @@ string DeleteCommand::GetType() {
 
 Command* DeleteCommand::Clone() {
 	return new DeleteCommand(*this);
+}
+
+//CopyCommand
+CopyCommand::CopyCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+}
+
+CopyCommand::CopyCommand(const CopyCommand& source)
+	: Command(source) {
+}
+
+CopyCommand::~CopyCommand() {
+
+}
+
+CopyCommand& CopyCommand::operator=(const CopyCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void CopyCommand::Execute() {
+	Long row = this->textEditingForm->note->GetCurrent();
+	Long column = this->textEditingForm->current->GetCurrent();
+	Long originStart = this->textEditingForm->selection->GetStart();
+	Long originEnd = this->textEditingForm->selection->GetEnd();
+	Long start = originStart;
+	Long end = originEnd;
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		dummyManager->Unfold(&start, &end);
+
+		if (this->textEditingForm->selection != NULL) {
+			delete this->textEditingForm->selection;
+			this->textEditingForm->selection = NULL;
+		}
+		this->textEditingForm->selection = new Selection(start, end);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_COPY, 0));
+
+	//========== 자동 개행 처리 2 ==========
+	if (dummyManager != NULL) {
+		Long lastFoldedRow;
+		Long i = start;
+		while (i <= end && end < this->textEditingForm->note->GetLength()) {
+			lastFoldedRow = dummyManager->Fold(i);
+			end += lastFoldedRow - i;
+			i = lastFoldedRow + 1;
+		}
+		delete dummyManager;
+
+		if (this->textEditingForm->selection != NULL) {
+			delete this->textEditingForm->selection;
+			this->textEditingForm->selection = NULL;
+		}
+		this->textEditingForm->selection = new Selection(originStart, originEnd);
+
+		this->textEditingForm->note->Move(row);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		this->textEditingForm->current->Move(column);
+	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+string CopyCommand::GetType() {
+	return "Copy";
+}
+
+Command* CopyCommand::Clone() {
+	return new CopyCommand(*this);
+}
+
+//DeleteSelectionCommand
+DeleteSelectionCommand::DeleteSelectionCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+	this->startRow = -1;
+	this->startColumn = -1;
+	this->endRow = -1;
+	this->endColumn = -1;
+	this->selecteds = "";
+}
+
+DeleteSelectionCommand::DeleteSelectionCommand(const DeleteSelectionCommand& source)
+	: Command(source) {
+	this->startRow = source.startRow;
+	this->startColumn = source.startColumn;
+	this->endRow = source.endRow;
+	this->endColumn = source.endColumn;
+	this->selecteds = source.selecteds;
+}
+
+DeleteSelectionCommand::~DeleteSelectionCommand() {
+
+}
+
+DeleteSelectionCommand& DeleteSelectionCommand::operator=(const DeleteSelectionCommand& source) {
+	Command::operator=(source);
+	this->startRow = source.startRow;
+	this->startColumn = source.startColumn;
+	this->endRow = source.endRow;
+	this->endColumn = source.endColumn;
+	this->selecteds = source.selecteds;
+
+	return *this;
+}
+
+void DeleteSelectionCommand::Execute() {
+	//startRow, startColumn, endRow, endColumn, selecteds(string)
+	if (this->startRow == -1 && this->startColumn == -1 && this->endRow == -1 && this->endColumn == -1 && this->selecteds == "") {
+		this->startRow = this->textEditingForm->selection->GetStart();
+		this->endRow = this->textEditingForm->selection->GetEnd();
+		Glyph* character;
+		Glyph* line;
+
+		bool isSelected = false;
+		line = this->textEditingForm->note->GetAt(this->startRow); //시작 행
+		Long i = 0;
+		while (i < line->GetLength() && isSelected == false) { //시작 행의 개수만큼 그리고 현재 글자가 선택되어있지 않은 동안 반복하다.
+			character = line->GetAt(i); //시작 행에서 글자를 가져오다.
+			isSelected = character->GetIsSelected(); //현재 글자의 선택여부를 확인하다.
+			i++;
+		}
+		this->startColumn = i - 1;
+		if (isSelected == false) {
+			this->startColumn++;
+		}
+
+		isSelected = true;
+		line = this->textEditingForm->note->GetAt(this->endRow); //끝 행
+		i = 0;
+		if (this->startRow == this->endRow) {
+			i = this->startColumn;
+		}
+		while (i < line->GetLength() && isSelected == true) { //끝 행의 개수만큼 그리고 현재 글자가 선택되어있는 동안 반복하다.
+			character = line->GetAt(i); //끝 행에서 글자를 가져오다.
+			isSelected = character->GetIsSelected(); //현재 글자의 선택여부를 확인하다.
+			i++;
+		}
+		this->endColumn = i - 1;
+		if (isSelected == true) {
+			this->endColumn++;
+		}
+		this->selecteds = this->textEditingForm->note->GetContent(this->startRow, this->startColumn, this->endRow, this->endColumn);
+	}
+
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long startDistance;
+	Long endDistance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		startDistance = dummyManager->CountDistance(this->startRow, this->startColumn);
+		endDistance = dummyManager->CountDistance(this->endRow, this->endColumn);
+		dummyManager->Unfold(&this->startRow, &this->endRow);
+		dummyManager->CountIndex(startDistance, &this->startRow, &this->startColumn); //reexecute에서는 필요없음.
+		dummyManager->CountIndex(endDistance, &this->endRow, &this->endColumn); //reexecute에서는 필요없음.
+
+		this->selecteds = this->textEditingForm->note->GetContent(this->startRow, this->startColumn, this->endRow, this->endColumn);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	if (this->textEditingForm->selection != NULL) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = NULL;
+		this->textEditingForm->note->UnselectAll();
+	}
+
+	this->textEditingForm->selection = new Selection(this->startRow, this->endRow);
+	this->textEditingForm->note->Select(this->startRow, this->startColumn, this->endRow, this->endColumn);
+
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_DELETESELECTION, 0));
+
+	//========== 자동 개행 처리 2 ==========
+	Long rowIndex;
+	Long columnIndex;
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->startRow);
+		dummyManager->CountIndex(startDistance, &rowIndex, &columnIndex);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(rowIndex);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(rowIndex);
+		this->textEditingForm->current->Move(columnIndex);
+	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+void DeleteSelectionCommand::Unexecute() {
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		dummyManager->Unfold(this->startRow);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->startRow);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->startRow);
+	this->textEditingForm->current->Move(this->startColumn);
+
+	GlyphFactory glyphFactory;
+	Scanner scanner(this->selecteds);
+	while (scanner.IsEnd() == false) {
+		string token = scanner.GetToken();
+		Glyph* glyph = glyphFactory.Make(token.c_str());
+		Long row = this->textEditingForm->note->GetCurrent();
+		Long column = this->textEditingForm->current->GetCurrent();
+		if (token != "\n") {
+			if (column >= this->textEditingForm->current->GetLength()) {
+				this->textEditingForm->current->Add(glyph);
+			}
+			else {
+				this->textEditingForm->current->Add(column, glyph);
+			}
+		}
+		else {
+			if (column < this->textEditingForm->current->GetLength()) {
+				this->textEditingForm->current = this->textEditingForm->current->Divide(column);
+				this->textEditingForm->note->Add(row + 1, this->textEditingForm->current);
+				this->textEditingForm->current->First();
+			}
+			else {
+				this->textEditingForm->current = glyphFactory.Make("\r\n");
+				this->textEditingForm->note->Add(row + 1, this->textEditingForm->current);
+			}
+		}
+		scanner.Next();
+	}
+
+	//========== 자동 개행 처리 2 ==========
+	Long startDistance;
+	Long endDistance;
+	if (dummyManager != NULL) {
+		startDistance = dummyManager->CountDistance(this->startRow, this->startColumn);
+		endDistance = dummyManager->CountDistance(this->endRow, this->endColumn);
+		Long end = this->endRow;
+		Long lastFoldedRow;
+		Long i = this->startRow;
+		while (i <= end && end < this->textEditingForm->note->GetLength()) {
+			lastFoldedRow = dummyManager->Fold(i);
+			end += lastFoldedRow - i;
+			i = lastFoldedRow + 1;
+		}
+		dummyManager->CountIndex(startDistance, &this->startRow, &this->startColumn);
+		dummyManager->CountIndex(endDistance, &this->endRow, &this->endColumn);
+		delete dummyManager;
+
+		if (this->textEditingForm->selection != 0) {
+			delete this->textEditingForm->selection;
+			this->textEditingForm->selection = 0;
+			this->textEditingForm->note->UnselectAll();
+		}
+	}
+	//========== 자동 개행 처리 2 ==========
+
+	this->textEditingForm->note->Select(this->startRow, this->startColumn, this->endRow, this->endColumn);
+	this->textEditingForm->selection = new Selection(this->startRow, this->endRow);
+
+	this->textEditingForm->note->Move(this->endRow);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->endRow);
+	this->textEditingForm->current->Move(this->endColumn);
+}
+
+string DeleteSelectionCommand::GetType() {
+	return "DeleteSelection";
+}
+
+Command* DeleteSelectionCommand::Clone() {
+	return new DeleteSelectionCommand(*this);
+}
+
+//CutCommand
+CutCommand::CutCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+
+}
+
+CutCommand::CutCommand(const CutCommand& source)
+	: Command(source) {
+
+}
+
+CutCommand::~CutCommand() {
+
+}
+
+CutCommand& CutCommand::operator=(const CutCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void CutCommand::Execute() {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_COPY, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+}
+
+string CutCommand::GetType() {
+	return "Cut";
+}
+
+Command* CutCommand::Clone() {
+	return new CutCommand(*this);
+}
+
+
+//PasteCommand
+PasteCommand::PasteCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+	this->startRow = -1;
+	this->startColumn = -1;
+	this->endRow = -1;
+	this->endColumn = -1;
+	this->pasteds = "";
+}
+
+PasteCommand::PasteCommand(const PasteCommand& source)
+	: Command(source) {
+	this->startRow = source.startRow;
+	this->startColumn = source.startColumn;
+	this->endRow = source.endRow;
+	this->endColumn = source.endColumn;
+	this->pasteds = source.pasteds;
+}
+
+PasteCommand::~PasteCommand() {
+
+}
+
+PasteCommand& PasteCommand::operator=(const PasteCommand& source) {
+	Command::operator=(source);
+	this->startRow = source.startRow;
+	this->startColumn = source.startColumn;
+	this->endRow = source.endRow;
+	this->endColumn = source.endColumn;
+	this->pasteds = source.pasteds;
+
+	return *this;
+}
+
+void PasteCommand::Execute() {
+	if (this->textEditingForm->selection != NULL) {
+		this->textEditingForm->SetIsDeleteSelectionByInput(TRUE);
+		this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+		this->textEditingForm->SetIsDeleteSelectionByInput(FALSE);
+	}
+
+	//정보 저장
+	if (this->startRow == -1 && this->startColumn == -1 && this->pasteds == "") {
+		this->startRow = this->textEditingForm->note->GetCurrent();
+		this->startColumn = this->textEditingForm->current->GetCurrent();
+		HANDLE handle;
+		LPSTR address = NULL;
+		if (::IsClipboardFormatAvailable(CF_TEXT) != FALSE) {
+			if (::OpenClipboard(this->textEditingForm->m_hWnd)) {
+				handle = GetClipboardData(CF_TEXT);
+				if (handle != NULL) {
+					address = (LPSTR)::GlobalLock(handle);
+					this->pasteds = address;
+					::GlobalUnlock(handle);
+				}
+				CloseClipboard();
+			}
+		}
+	}
+
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long distance = 0;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		distance = dummyManager->CountDistance(this->startRow, this->startColumn);
+		this->startRow = dummyManager->Unfold(this->startRow);
+		dummyManager->CountIndex(distance, &this->startRow, &this->startColumn);
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	this->textEditingForm->note->Move(this->startRow);
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->startRow);
+	this->textEditingForm->current->Move(this->startColumn);
+
+	//========== Paste 실제 처리 ==========
+	//복사한 문자열을 임시 Note로 만들다.
+	Scanner scanner(this->pasteds);
+	GlyphFactory glyphFactory;
+	Glyph* glyphClipBoard = glyphFactory.Make("");
+	Glyph* clipBoardLine = glyphFactory.Make("\r\n");
+	glyphClipBoard->Add(clipBoardLine);
+	while (scanner.IsEnd() == FALSE) {
+		string token = scanner.GetToken();
+		if (token != "\r\n") {
+			Glyph* glyph = glyphFactory.Make(token.c_str());
+			clipBoardLine->Add(glyph);
+		}
+		else {
+			clipBoardLine = glyphFactory.Make(token.c_str());
+			glyphClipBoard->Add(clipBoardLine);
+		}
+		scanner.Next();
+	}
+	Long i = 0;
+	//현재 줄의 현재 위치에서 나누다.
+	Long current = this->textEditingForm->current->GetCurrent();
+	Glyph* line = this->textEditingForm->current->Divide(current);
+	//현재 줄의 현재 위치부터 복사한 노트의 첫 번째 줄의 글자를 하나씩 추가한다.
+	Glyph* copiedLine = glyphClipBoard->GetAt(i++);
+	Long j = 0;
+	while (j < copiedLine->GetLength()) {
+		this->textEditingForm->current->Add(copiedLine->GetAt(j));
+		j++;
+	}
+	//복사한 노트의 줄 수만큼 반복한다.
+	while (i < glyphClipBoard->GetLength()) {
+		//복사한 노트의 현재 줄을 가져오다.
+		copiedLine = glyphClipBoard->GetAt(i);
+		//원래 노트의 현재 위치에 가져온 줄을 추가하다.
+		Long noteCurrent = this->textEditingForm->note->GetCurrent();
+		this->textEditingForm->note->Add(noteCurrent + 1, copiedLine);
+		i++;
+	}
+	//마지막으로 추가한 줄을 현재 줄로 한다.
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->textEditingForm->note->GetCurrent());
+	//마지막 줄에 아까 캐럿 위치에서 나눈 줄을 이어 붙이다.
+	this->textEditingForm->current->Combine(line);
+
+	//정보 저장
+	if (this->endRow == -1 && this->endColumn == -1) {
+		this->endRow = this->textEditingForm->note->GetCurrent();
+		this->endColumn = this->textEditingForm->current->GetCurrent();
+	}
+	//========== Paste 실제 처리 ==========
+
+	//========== 자동 개행 처리 2 ==========
+	if (dummyManager != NULL) {
+		distance = dummyManager->CountDistance(this->endRow, this->endColumn); //편 상태
+		Long lastFoldedRow;
+		Long end = this->endRow;
+		Long i = this->startRow;
+		while (i <= end) {
+			lastFoldedRow = dummyManager->Fold(i);
+			end += lastFoldedRow - i;
+			i = lastFoldedRow + 1;
+		}
+		dummyManager->CountIndex(distance, &this->endRow, &this->endColumn); //접은 상태
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(this->endRow);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(this->endRow);
+		this->textEditingForm->current->Move(this->endColumn);
+	}
+	//========== 자동 개행 처리 2 ==========
+}
+
+void PasteCommand::Unexecute() {
+	//========== 자동 개행 처리 1 ==========
+	DummyManager* dummyManager = 0;
+	Long startDistance;
+	Long endDistance;
+	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
+		CRect rect;
+		this->textEditingForm->GetClientRect(rect);
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		startDistance = dummyManager->CountDistance(this->startRow, this->startColumn);
+		endDistance = dummyManager->CountDistance(this->endRow, this->endColumn); //접은 상태
+		dummyManager->Unfold(&this->startRow, &this->endRow); //편 상태
+		dummyManager->CountIndex(startDistance, &this->startRow, &this->startColumn);
+		dummyManager->CountIndex(endDistance, &this->endRow, &this->endColumn); //편 상태
+	}
+	//========== 자동 개행 처리 1 ==========
+
+	Long i;
+	Glyph* line;
+	Long length;
+	Long j;
+	Long end = this->endRow;
+	i = this->startRow;
+	while (i <= end) {
+		line = this->textEditingForm->note->GetAt(i);
+		j = this->startColumn;
+		length = line->GetLength();
+		if (i == end) {
+			length = j + this->endColumn;
+		}
+		while (j < length) {
+			line->Remove(j--);
+			length--;
+			j++;
+		}
+		if (j >= line->GetLength() && i < end) {
+			this->textEditingForm->current = line->Combine(this->textEditingForm->note->GetAt(i + 1));
+			this->textEditingForm->note->Remove(i + 1);
+			i--;
+			end--;
+		}
+		i++;
+	}
+
+	//========== 자동 개행 처리 2 ==========
+	if (dummyManager != NULL) {
+		dummyManager->Fold(this->startRow);
+		dummyManager->CountIndex(startDistance, &this->startRow, &this->startColumn);
+		delete dummyManager;
+
+		this->textEditingForm->note->Move(this->startRow);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(this->startRow);
+		this->textEditingForm->current->Move(this->startColumn);
+	}
+	//========== 자동 개행 처리 2 ==========
+
+	if (this->textEditingForm->selection != 0) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = 0;
+		this->textEditingForm->note->UnselectAll();
+	}
+}
+
+string PasteCommand::GetType() {
+	return "Paste";
+}
+
+Command* PasteCommand::Clone() {
+	return new PasteCommand(*this);
 }
 
 //SelectAllCommand
@@ -301,136 +1630,70 @@ Command* SelectAllCommand::Clone() {
 	return new SelectAllCommand(*this);
 }
 
-//CopyCommand
-CopyCommand::CopyCommand(TextEditingForm* textEditingForm)
+//UndoCommand
+UndoCommand::UndoCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
 }
 
-CopyCommand::CopyCommand(const CopyCommand& source)
+UndoCommand::UndoCommand(const UndoCommand& source)
 	: Command(source) {
+}
+
+UndoCommand::~UndoCommand() {
 
 }
 
-CopyCommand::~CopyCommand() {
-
-}
-
-CopyCommand& CopyCommand::operator=(const CopyCommand& source) {
+UndoCommand& UndoCommand::operator=(const UndoCommand& source) {
 	Command::operator=(source);
 
 	return *this;
 }
 
-void CopyCommand::Execute() {
-	if (this->textEditingForm->selection != NULL) {
-		Long start = this->textEditingForm->selection->GetStart();
-		Long end = this->textEditingForm->selection->GetEnd();
-		CString clipBoard;
-		string content;
-		Glyph* line;
-		Glyph* character;
-		Long column = 0;
-		Long j;
-		Long i = start;
-		while (i <= end) {
-			content = "";
-			line = this->textEditingForm->note->GetAt(i);
-			j = 0;
-			while (j < line->GetLength()) {
-				character = line->GetAt(j);
-				if (character->GetIsSelected()) {
-					column = j + 1;
-					content += character->GetContent();
-				}
-				j++;
-			}
+void UndoCommand::Execute() {
+	if (this->textEditingForm->undoHistoryBook->GetLength() > 0) {
+		Command* command = this->textEditingForm->undoHistoryBook->OpenAt();
+		command->Unexecute();
 
-			if (column >= line->GetLength()) {
-				content.append("\r\n");
-			}
-			clipBoard.Append(content.c_str());
-			i++;
-		}
-
-		HANDLE handle = 0;
-		char* address = NULL;
-		handle = ::GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, clipBoard.GetLength() + 1);
-		address = (char*)::GlobalLock(handle);
-		if (address == NULL) {
-			::GlobalFree(handle);
-		}
-		else {
-			strcpy(address, clipBoard);
-		}
-		if (::OpenClipboard(this->textEditingForm->m_hWnd)) {
-			::EmptyClipboard();
-			::SetClipboardData(CF_TEXT, handle);
-			::CloseClipboard();
-		}
-		::GlobalUnlock(handle);
+		this->textEditingForm->redoHistoryBook->Write(command->Clone());
+		this->textEditingForm->undoHistoryBook->Erase();
 	}
 }
 
-string CopyCommand::GetType() {
-	return "Copy";
+string UndoCommand::GetType() {
+	return "Undo";
 }
 
-Command* CopyCommand::Clone() {
-	return new CopyCommand(*this);
+Command* UndoCommand::Clone() {
+	return new UndoCommand(*this);
 }
 
-//DeleteSelectionCommand
-DeleteSelectionCommand::DeleteSelectionCommand(TextEditingForm* textEditingForm)
+//RedoCommand
+RedoCommand::RedoCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
 }
 
-DeleteSelectionCommand::DeleteSelectionCommand(const DeleteSelectionCommand& source)
+RedoCommand::RedoCommand(const RedoCommand& source)
 	: Command(source) {
+}
+
+RedoCommand::~RedoCommand() {
 
 }
 
-DeleteSelectionCommand::~DeleteSelectionCommand() {
-
-}
-
-DeleteSelectionCommand& DeleteSelectionCommand::operator=(const DeleteSelectionCommand& source) {
+RedoCommand& RedoCommand::operator=(const RedoCommand& source) {
 	Command::operator=(source);
 
 	return *this;
 }
 
-void DeleteSelectionCommand::Execute() {
-	Long i;
-	Long start = this->textEditingForm->selection->GetStart();
-	Long end = this->textEditingForm->selection->GetEnd();
-	Glyph* character;
-	Glyph* line;
-	Long j;
-	i = start;
-	while (i <= end) {
-		line = this->textEditingForm->note->GetAt(i);
-		j = 0;
-		while (j < line->GetLength()) {
-			character = line->GetAt(j);
-			if (character->GetIsSelected()) {
-				line->Remove(j--);
-			}
-			j++;
-		}
-		if (j >= line->GetLength() && i < end) {
-			this->textEditingForm->current = line->Combine(this->textEditingForm->note->GetAt(i + 1));
-			this->textEditingForm->note->Remove(i + 1);
-			i--;
-			end--;
-		}
-		i++;
+void RedoCommand::Execute() {
+	if (this->textEditingForm->redoHistoryBook->GetLength() > 0) {
+		Command* command = this->textEditingForm->redoHistoryBook->OpenAt();
+		command->Execute();
+
+		this->textEditingForm->undoHistoryBook->Write(command->Clone());
+		this->textEditingForm->redoHistoryBook->Erase();
 	}
-
-	this->textEditingForm->note->Move(start);
-	this->textEditingForm->current = this->textEditingForm->note->GetAt(start);
-
 	if (this->textEditingForm->selection != NULL) {
 		delete this->textEditingForm->selection;
 		this->textEditingForm->selection = NULL;
@@ -438,145 +1701,96 @@ void DeleteSelectionCommand::Execute() {
 	}
 }
 
-string DeleteSelectionCommand::GetType() {
-	return "DeleteSelection";
+string RedoCommand::GetType() {
+	return "Redo";
 }
 
-Command* DeleteSelectionCommand::Clone() {
-	return new DeleteSelectionCommand(*this);
+Command* RedoCommand::Clone() {
+	return new RedoCommand(*this);
 }
 
-//CutCommand
-CutCommand::CutCommand(TextEditingForm* textEditingForm)
+//FindCommand
+FindCommand::FindCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
 }
 
-CutCommand::CutCommand(const CutCommand& source)
+FindCommand::FindCommand(const FindCommand& source)
 	: Command(source) {
+}
+
+FindCommand::~FindCommand() {
 
 }
 
-CutCommand::~CutCommand() {
-
-}
-
-CutCommand& CutCommand::operator=(const CutCommand& source) {
+FindCommand& FindCommand::operator=(const FindCommand& source) {
 	Command::operator=(source);
 
 	return *this;
 }
 
-void CutCommand::Execute() { //테스트 요망..
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_COPY, 0));
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+void FindCommand::Execute() {
+	if (this->textEditingForm->GetIsUnlockedFindReplaceDialog() == TRUE && this->textEditingForm->findReplaceDialog == NULL) {
+		string selectedContent = "";
+		if (this->textEditingForm->selection != NULL) {
+			selectedContent = textEditingForm->note->GetSelectedContent
+			(this->textEditingForm->selection->GetStart(), this->textEditingForm->selection->GetEnd());
+		}
+		this->textEditingForm->findReplaceDialog = new FindReplaceDialog(TRUE, selectedContent, this->textEditingForm);
+		this->textEditingForm->findReplaceDialog->SetActiveWindow();
+		this->textEditingForm->findReplaceDialog->ShowWindow(TRUE);
+	}
 }
 
-string CutCommand::GetType() {
-	return "Cut";
+string FindCommand::GetType() {
+	return "Find";
 }
 
-Command* CutCommand::Clone() {
-	return new CutCommand(*this);
+Command* FindCommand::Clone() {
+	return new FindCommand(*this);
 }
 
-//PasteCommand
-PasteCommand::PasteCommand(TextEditingForm* textEditingForm)
+//ReplaceCommand
+ReplaceCommand::ReplaceCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
-
 }
 
-PasteCommand::PasteCommand(const PasteCommand& source)
+ReplaceCommand::ReplaceCommand(const ReplaceCommand& source)
 	: Command(source) {
+}
+
+ReplaceCommand::~ReplaceCommand() {
 
 }
 
-PasteCommand::~PasteCommand() {
-
-}
-
-PasteCommand& PasteCommand::operator=(const PasteCommand& source) {
+ReplaceCommand& ReplaceCommand::operator=(const ReplaceCommand& source) {
 	Command::operator=(source);
 
 	return *this;
 }
 
-void PasteCommand::Execute() {
-	if (this->textEditingForm->selection != NULL) {
-		this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
-	}
-
-	//시스템 클립보드에서 복사된 문자열을 가져오다.
-	string clipBoard;
-	HANDLE handle;
-	LPSTR address = NULL;
-	if (::IsClipboardFormatAvailable(CF_TEXT) != FALSE) {
-		if (::OpenClipboard(this->textEditingForm->m_hWnd)) {
-			handle = GetClipboardData(CF_TEXT);
-			if (handle != NULL) {
-				address = (LPSTR)::GlobalLock(handle);
-				if (address != 0) {
-					clipBoard = address;
-				}
-				::GlobalUnlock(handle);
-			}
-			CloseClipboard();
+void ReplaceCommand::Execute() {
+	if (this->textEditingForm->GetIsUnlockedFindReplaceDialog() == TRUE && this->textEditingForm->findReplaceDialog == NULL) {
+		string selectedContent = "";
+		if (this->textEditingForm->selection != NULL) {
+			selectedContent = textEditingForm->note->GetSelectedContent
+			(this->textEditingForm->selection->GetStart(), this->textEditingForm->selection->GetEnd());
 		}
+		this->textEditingForm->findReplaceDialog = new FindReplaceDialog(FALSE, selectedContent, this->textEditingForm);
+		this->textEditingForm->findReplaceDialog->SetActiveWindow();
+		this->textEditingForm->findReplaceDialog->ShowWindow(TRUE);
 	}
-
-	//복사한 문자열을 임시 Note로 만들다.
-	Scanner scanner(clipBoard);
-	GlyphFactory glyphFactory;
-	Glyph* glyphClipBoard = glyphFactory.Make("");
-	Glyph* clipBoardLine = glyphFactory.Make("\r\n");
-	glyphClipBoard->Add(clipBoardLine);
-	while (scanner.IsEnd() == FALSE) {
-		string token = scanner.GetToken();
-		if (token != "\r\n") {
-			Glyph* glyph = glyphFactory.Make(token.c_str());
-			clipBoardLine->Add(glyph);
-		}
-		else {
-			clipBoardLine = glyphFactory.Make(token.c_str());
-			glyphClipBoard->Add(clipBoardLine);
-		}
-		scanner.Next();
-	}
-	Long i = 0;
-	//현재 줄의 현재 위치에서 나누다.
-	Long current = this->textEditingForm->current->GetCurrent();
-	Glyph* line = this->textEditingForm->current->Divide(current);
-	//현재 줄의 현재 위치부터 복사한 노트의 첫 번째 줄의 글자를 하나씩 추가한다.
-	Glyph* copiedLine = glyphClipBoard->GetAt(i++);
-	Long j = 0;
-	while (j < copiedLine->GetLength()) {
-		this->textEditingForm->current->Add(copiedLine->GetAt(j));
-		j++;
-	}
-	//복사한 노트의 줄 수만큼 반복한다.
-	while (i < glyphClipBoard->GetLength()) {
-		//복사한 노트의 현재 줄을 가져오다.
-		copiedLine = glyphClipBoard->GetAt(i);
-		//원래 노트의 현재 위치에 가져온 줄을 추가하다.
-		Long noteCurrent = this->textEditingForm->note->GetCurrent();
-		this->textEditingForm->note->Add(noteCurrent + 1, copiedLine);
-		i++;
-	}
-	//마지막으로 추가한 줄을 현재 줄로 한다.
-	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->textEditingForm->note->GetCurrent());
-	//마지막 줄에 아까 캐럿 위치에서 나눈 줄을 이어 붙이다.
-	this->textEditingForm->current->Combine(line);
 }
 
-string PasteCommand::GetType() {
-	return "Paste";
+string ReplaceCommand::GetType() {
+	return "Replace";
 }
 
-Command* PasteCommand::Clone() {
-	return new PasteCommand(*this);
+Command* ReplaceCommand::Clone() {
+	return new ReplaceCommand(*this);
 }
+//////////////////// Main ////////////////////
 
-//=============== Move Command ===============
+//////////////////// Move ////////////////////
 //LeftCommand
 LeftCommand::LeftCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
@@ -1097,7 +2311,9 @@ string PageDownCommand::GetType() {
 Command* PageDownCommand::Clone() {
 	return new PageDownCommand(*this);
 }
+//////////////////// Move ////////////////////
 
+//////////////////// Select ////////////////////
 //ShiftLeftCommand
 ShiftLeftCommand::ShiftLeftCommand(TextEditingForm* textEditingForm)
 	: Command(textEditingForm) {
@@ -1839,4 +3055,4 @@ string ShiftCtrlEndCommand::GetType() {
 Command* ShiftCtrlEndCommand::Clone() {
 	return new ShiftCtrlEndCommand(*this);
 }
-//=============== Move Command ===============
+//////////////////// Select ////////////////////

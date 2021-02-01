@@ -118,7 +118,7 @@ bool Note::IsFirst() {
 
 bool Note::IsLast() {
 	bool isLast = false;
-	if (this->current == this->length && this->glyphs.GetAt(this->current)->IsLast()) {
+	if (this->current == this->length-1 && this->glyphs.GetAt(this->current)->IsLast()) {
 		isLast = true;
 	}
 

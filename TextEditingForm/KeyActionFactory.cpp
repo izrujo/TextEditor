@@ -84,6 +84,27 @@ KeyAction* KeyActionFactory::Make(UINT nChar) {
 	else if (isCtrl && nChar == 0x58) {
 		keyAction = new CtrlXKeyAction(this->textEditingForm);
 	}
+	else if (isCtrl && nChar == 0x5A) {
+		keyAction = new CtrlZKeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x59) {
+		keyAction = new CtrlYKeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x46) {
+		keyAction = new CtrlFKeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x48) {
+		keyAction = new CtrlHKeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x70) {// 임시
+		keyAction = new CtrlF1KeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x71) {// 임시
+		keyAction = new CtrlF2KeyAction(this->textEditingForm);
+	}
+	else if (isCtrl && nChar == 0x72) {// 임시
+		keyAction = new CtrlF3KeyAction(this->textEditingForm);
+	}
 	//KEY
 	else if (nChar == VK_LEFT) {
 		keyAction = new LeftKeyAction(this->textEditingForm);

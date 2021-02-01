@@ -28,9 +28,13 @@
     <ClInclude Include="Characters.h" />
     <ClInclude Include="Composite.h" />
     <ClInclude Include="DrawingVisitor.h" />
+    <ClInclude Include="DummyLine.h" />
+    <ClInclude Include="DummyManager.h" />
+    <ClInclude Include="FindReplaceDialog.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="Glyph.h" />
     <ClInclude Include="GlyphFactory.h" />
+    <ClInclude Include="HistoryBook.h" />
     <ClInclude Include="HScrollActionFactory.h" />
     <ClInclude Include="HScrollActions.h" />
     <ClInclude Include="KeyActionFactory.h" />
@@ -39,6 +43,8 @@
     <ClInclude Include="Note.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Scanner.h" />
+    <ClInclude Include="Stack.h" />
+    <ClInclude Include="String.h" />
     <ClInclude Include="TextEditorApp.h" />
     <ClInclude Include="Observer.h" />
     <ClInclude Include="Scroll.h" />
@@ -59,9 +65,13 @@
     <ClCompile Include="Characters.cpp" />
     <ClCompile Include="Composite.cpp" />
     <ClCompile Include="DrawingVisitor.cpp" />
+    <ClCompile Include="DummyLine.cpp" />
+    <ClCompile Include="DummyManager.cpp" />
+    <ClCompile Include="FindReplaceDialog.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="Glyph.cpp" />
     <ClCompile Include="GlyphFactory.cpp" />
+    <ClCompile Include="HistoryBook.cpp" />
     <ClCompile Include="HScrollActionFactory.cpp" />
     <ClCompile Include="HScrollActions.cpp" />
     <ClCompile Include="KeyActionFactory.cpp" />
@@ -69,6 +79,8 @@
     <ClCompile Include="Line.cpp" />
     <ClCompile Include="Note.cpp" />
     <ClCompile Include="Scanner.cpp" />
+    <ClCompile Include="Stack.cpp" />
+    <ClCompile Include="String.cpp" />
     <ClCompile Include="TextEditorApp.cpp" />
     <ClCompile Include="Observer.cpp" />
     <ClCompile Include="Scroll.cpp" />
@@ -79,6 +91,9 @@
     <ClCompile Include="Visitor.cpp" />
     <ClCompile Include="VScrollActionFactory.cpp" />
     <ClCompile Include="VScrollActions.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TextEditingForm.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

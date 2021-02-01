@@ -24,6 +24,7 @@ CommandFactory& CommandFactory::operator=(const CommandFactory& source) {
 Command* CommandFactory::Make(int uID) {
 	Command* command = 0;
 	
+	//////////////////// Main ////////////////////
 	if (uID == IDC_EDIT_WRITE) {
 		command = new WriteCommand(this->textEditingForm);
 	}
@@ -35,9 +36,6 @@ Command* CommandFactory::Make(int uID) {
 	}
 	else if (uID == IDC_EDIT_DELETE) {
 		command = new DeleteCommand(this->textEditingForm);
-	}
-	else if (uID == IDC_EDIT_SELECTALL) {
-		command = new SelectAllCommand(this->textEditingForm);
 	}
 	else if (uID == IDC_EDIT_COPY) {
 		command = new CopyCommand(this->textEditingForm);
@@ -51,6 +49,43 @@ Command* CommandFactory::Make(int uID) {
 	else if (uID == IDC_EDIT_PASTE) {
 		command = new PasteCommand(this->textEditingForm);
 	}
+	else if (uID == IDC_EDIT_SELECTALL) {
+		command = new SelectAllCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_EDIT_UNDO) {
+		command = new UndoCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_EDIT_REDO) {
+		command = new RedoCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_EDIT_FIND) {
+		command = new FindCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_EDIT_REPLACE) {
+		command = new ReplaceCommand(this->textEditingForm);
+	}
+	//////////////////// Main ////////////////////
+	//////////////////// Basic ////////////////////
+	else if (uID == IDC_BASIC_WRITE) {
+		command = new WriteBasicCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_BASIC_IMECOMPOSITION) {
+		command = new ImeCompositionBasicCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_BASIC_IMECHAR) {
+		command = new ImeCharBasicCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_BASIC_DELETE) {
+		command = new DeleteBasicCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_BASIC_COPY) {
+		command = new CopyBasicCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_BASIC_DELETESELECTION) {
+		command = new DeleteSelectionBasicCommand(this->textEditingForm);
+	}
+	//////////////////// Basic ////////////////////
+	//////////////////// Move ////////////////////
 	else if (uID == IDC_MOVE_LEFT) {
 		command = new LeftCommand(this->textEditingForm);
 	}
@@ -87,6 +122,8 @@ Command* CommandFactory::Make(int uID) {
 	else if (uID == IDC_MOVE_PAGEDOWN) {
 		command = new PageDownCommand(this->textEditingForm);
 	}
+	//////////////////// Move ////////////////////
+	//////////////////// Select ////////////////////
 	else if (uID == IDC_SELECTMOVE_LEFT) {
 		command = new ShiftLeftCommand(this->textEditingForm);
 	}
@@ -117,6 +154,7 @@ Command* CommandFactory::Make(int uID) {
 	else if (uID == IDC_SELECTMOVE_CTRLEND) {
 		command = new ShiftCtrlEndCommand(this->textEditingForm);
 	}
+	//////////////////// Select ////////////////////
 
 	return command;
 }

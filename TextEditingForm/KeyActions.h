@@ -283,4 +283,70 @@ public:
 	CtrlXKeyAction& operator =(const CtrlXKeyAction& source);
 };
 
+class CtrlZKeyAction : public KeyAction {
+public:
+	CtrlZKeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlZKeyAction(const CtrlZKeyAction& source);
+	virtual ~CtrlZKeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlZKeyAction& operator =(const CtrlZKeyAction& source);
+};
+
+class CtrlYKeyAction : public KeyAction {
+public:
+	CtrlYKeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlYKeyAction(const CtrlYKeyAction& source);
+	virtual ~CtrlYKeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlYKeyAction& operator =(const CtrlYKeyAction& source);
+};
+
+class CtrlFKeyAction : public KeyAction {
+public:
+	CtrlFKeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlFKeyAction(const CtrlFKeyAction& source);
+	virtual ~CtrlFKeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlFKeyAction& operator =(const CtrlFKeyAction& source);
+};
+
+class CtrlHKeyAction : public KeyAction {
+public:
+	CtrlHKeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlHKeyAction(const CtrlHKeyAction& source);
+	virtual ~CtrlHKeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlHKeyAction& operator =(const CtrlHKeyAction& source);
+};
+
+//임시
+class CtrlF1KeyAction : public KeyAction {
+public:
+	CtrlF1KeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlF1KeyAction(const CtrlF1KeyAction& source);
+	virtual ~CtrlF1KeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlF1KeyAction& operator =(const CtrlF1KeyAction& source);
+};
+
+//임시
+class CtrlF2KeyAction : public KeyAction {
+public:
+	CtrlF2KeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlF2KeyAction(const CtrlF2KeyAction& source);
+	virtual ~CtrlF2KeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlF2KeyAction& operator =(const CtrlF2KeyAction& source);
+};
+
+//임시
+class CtrlF3KeyAction : public KeyAction {
+public:
+	CtrlF3KeyAction(TextEditingForm* textEditingForm = 0);
+	CtrlF3KeyAction(const CtrlF3KeyAction& source);
+	virtual ~CtrlF3KeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CtrlF3KeyAction& operator =(const CtrlF3KeyAction& source);
+};
+
 #endif //_KEYACTIONS_H

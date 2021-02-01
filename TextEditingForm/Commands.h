@@ -1,11 +1,15 @@
 #ifndef _COMMAND_H
 #define _COMMAND_H
 
+#include "Array.h"
 #include <iostream>
+#include <afxwin.h> //TCHAR
 
 using namespace std;
+typedef signed long int Long;
 
 class TextEditingForm;
+class Glyph;
 
 class Command {
 public:
@@ -15,14 +19,147 @@ public:
 	Command& operator=(const Command& source);
 
 	virtual void Execute() = 0;
+	virtual void Unexecute();
 
 	virtual string GetType() = 0;
 	virtual Command* Clone() = 0;
+
+	//MacroCommand
+	virtual Long Add(Command* command);
+	virtual Long Remove(Long index);
+	virtual Command* GetAt(Long index);
+
+	virtual Long GetCapacity() const;
+	virtual Long GetLength() const;
 
 protected:
 	TextEditingForm* textEditingForm;
 };
 
+//////////////////// Composite ////////////////////
+//MacroCommand
+class MacroCommand : public Command {
+public:
+	MacroCommand(TextEditingForm* textEditingForm = 0, Long capacity = 10);
+	MacroCommand(const MacroCommand& source);
+	virtual ~MacroCommand();
+	MacroCommand& operator=(const MacroCommand& source);
+
+	virtual void Execute();
+	virtual void Unexecute();
+
+	virtual Long Add(Command* command);
+	virtual Long Remove(Long index);
+	virtual Command* GetAt(Long index);
+
+	virtual string GetType();
+	virtual Command* Clone();
+
+	virtual Long GetCapacity() const;
+	virtual Long GetLength() const;
+
+private:
+	Array<Command*> commands;
+	Long capacity;
+	Long length;
+};
+
+inline Long MacroCommand::GetCapacity() const {
+	return this->capacity;
+}
+
+inline Long MacroCommand::GetLength() const {
+	return this->length;
+}
+//////////////////// Composite ////////////////////
+
+//////////////////// Basic ////////////////////
+//WriteBasicCommand
+class WriteBasicCommand : public Command {
+public:
+	WriteBasicCommand(TextEditingForm* textEditingForm = 0);
+	WriteBasicCommand(const WriteBasicCommand& source);
+	virtual ~WriteBasicCommand();
+	WriteBasicCommand& operator=(const WriteBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//ImeCompositionBasicCommand
+class ImeCompositionBasicCommand : public Command {
+public:
+	ImeCompositionBasicCommand(TextEditingForm* textEditingForm = 0);
+	ImeCompositionBasicCommand(const ImeCompositionBasicCommand& source);
+	virtual ~ImeCompositionBasicCommand();
+	ImeCompositionBasicCommand& operator=(const ImeCompositionBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//ImeCharBasicCommand
+class ImeCharBasicCommand : public Command {
+public:
+	ImeCharBasicCommand(TextEditingForm* textEditingForm = 0);
+	ImeCharBasicCommand(const ImeCharBasicCommand& source);
+	virtual ~ImeCharBasicCommand();
+	ImeCharBasicCommand& operator=(const ImeCharBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//DeleteBasicCommand
+class DeleteBasicCommand : public Command {
+public:
+	DeleteBasicCommand(TextEditingForm* textEditingForm = 0);
+	DeleteBasicCommand(const DeleteBasicCommand& source);
+	virtual ~DeleteBasicCommand();
+	DeleteBasicCommand& operator=(const DeleteBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//CopyBasicCommand
+class CopyBasicCommand : public Command {
+public:
+	CopyBasicCommand(TextEditingForm* textEditingForm = 0);
+	CopyBasicCommand(const CopyBasicCommand& source);
+	virtual ~CopyBasicCommand();
+	CopyBasicCommand& operator=(const CopyBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//DeleteSelectionBasicCommand
+class DeleteSelectionBasicCommand : public Command {
+public:
+	DeleteSelectionBasicCommand(TextEditingForm* textEditingForm = 0);
+	DeleteSelectionBasicCommand(const DeleteSelectionBasicCommand& source);
+	virtual ~DeleteSelectionBasicCommand();
+	DeleteSelectionBasicCommand& operator=(const DeleteSelectionBasicCommand& source);
+
+	virtual void Execute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+};
+//////////////////// Basic ////////////////////
+
+//////////////////// Main ////////////////////
 //WriteCommand
 class WriteCommand : public Command {
 public:
@@ -32,9 +169,15 @@ public:
 	WriteCommand& operator=(const WriteCommand& source);
 
 	virtual void Execute();
+	virtual void Unexecute();
 
 	virtual string GetType();
 	virtual Command* Clone();
+
+private:
+	int nChar;
+	Long row;
+	Long column;
 };
 
 //ImeCompositionCommand
@@ -60,9 +203,15 @@ public:
 	ImeCharCommand& operator=(const ImeCharCommand& source);
 
 	virtual void Execute();
+	virtual void Unexecute();
 
 	virtual string GetType();
 	virtual Command* Clone();
+
+private:
+	TCHAR(*buffer);
+	Long row;
+	Long column;
 };
 
 //DeleteCommand
@@ -74,23 +223,17 @@ public:
 	DeleteCommand& operator=(const DeleteCommand& source);
 
 	virtual void Execute();
+	virtual void Unexecute();
 
 	virtual string GetType();
 	virtual Command* Clone();
-};
 
-//SelectAllCommand
-class SelectAllCommand : public Command {
-public:
-	SelectAllCommand(TextEditingForm* textEditingForm = 0);
-	SelectAllCommand(const SelectAllCommand& source);
-	virtual ~SelectAllCommand();
-	SelectAllCommand& operator=(const SelectAllCommand& source);
-
-	virtual void Execute();
-
-	virtual string GetType();
-	virtual Command* Clone();
+private:
+	Long row;
+	Long noteLength;
+	Long column;
+	Long lineLength;
+	Glyph* character;
 };
 
 //CopyCommand
@@ -116,9 +259,17 @@ public:
 	DeleteSelectionCommand& operator=(const DeleteSelectionCommand& source);
 
 	virtual void Execute();
+	virtual void Unexecute();
 
 	virtual string GetType();
 	virtual Command* Clone();
+
+private:
+	Long startRow;
+	Long startColumn;
+	Long endRow;
+	Long endColumn;
+	string selecteds;
 };
 
 //CutCommand
@@ -144,12 +295,87 @@ public:
 	PasteCommand& operator=(const PasteCommand& source);
 
 	virtual void Execute();
+	virtual void Unexecute();
+
+	virtual string GetType();
+	virtual Command* Clone();
+
+private:
+	Long startRow;
+	Long startColumn;
+	Long endRow;
+	Long endColumn;
+	string pasteds;
+};
+
+//SelectAllCommand
+class SelectAllCommand : public Command {
+public:
+	SelectAllCommand(TextEditingForm* textEditingForm = 0);
+	SelectAllCommand(const SelectAllCommand& source);
+	virtual ~SelectAllCommand();
+	SelectAllCommand& operator=(const SelectAllCommand& source);
+
+	virtual void Execute();
 
 	virtual string GetType();
 	virtual Command* Clone();
 };
 
-//=============== Move Command ===============
+//UndoCommand
+class UndoCommand : public Command {
+public:
+	UndoCommand(TextEditingForm* textEditingForm = 0);
+	UndoCommand(const UndoCommand& source);
+	virtual ~UndoCommand();
+	UndoCommand& operator=(const UndoCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//RedoCommand
+class RedoCommand : public Command {
+public:
+	RedoCommand(TextEditingForm* textEditingForm = 0);
+	RedoCommand(const RedoCommand& source);
+	virtual ~RedoCommand();
+	RedoCommand& operator=(const RedoCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//FindCommand
+class FindCommand : public Command {
+public:
+	FindCommand(TextEditingForm* textEditingForm = 0);
+	FindCommand(const FindCommand& source);
+	virtual ~FindCommand();
+	FindCommand& operator=(const FindCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//ReplaceCommand
+class ReplaceCommand : public Command {
+public:
+	ReplaceCommand(TextEditingForm* textEditingForm = 0);
+	ReplaceCommand(const ReplaceCommand& source);
+	virtual ~ReplaceCommand();
+	ReplaceCommand& operator=(const ReplaceCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+//////////////////// Main ////////////////////
+
+//////////////////// Move ////////////////////
 //LeftCommand
 class LeftCommand : public Command {
 public:
@@ -305,7 +531,9 @@ public:
 	virtual string GetType();
 	virtual Command* Clone();
 };
+//////////////////// Move ////////////////////
 
+//////////////////// Select ////////////////////
 //ShiftLeftCommand
 class ShiftLeftCommand : public Command {
 public:
@@ -435,6 +663,6 @@ public:
 	virtual string GetType();
 	virtual Command* Clone();
 };
-//=============== Move Command ===============
+//////////////////// Select ////////////////////
 
 #endif //_COMMAND_H
