@@ -20,8 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Array.h" />
-    <ClInclude Include="CommandFactory.h" />
-    <ClInclude Include="Commands.h" />
+    <ClInclude Include="CNTCommandFactory.h" />
+    <ClInclude Include="CNTCommands.h" />
     <ClInclude Include="Caret.h" />
     <ClInclude Include="CaretController.h" />
     <ClInclude Include="CharacterMetrics.h" />
@@ -37,8 +37,8 @@
     <ClInclude Include="HistoryBook.h" />
     <ClInclude Include="HScrollActionFactory.h" />
     <ClInclude Include="HScrollActions.h" />
-    <ClInclude Include="KeyActionFactory.h" />
-    <ClInclude Include="KeyActions.h" />
+    <ClInclude Include="CNTKeyActionFactory.h" />
+    <ClInclude Include="CNTKeyActions.h" />
     <ClInclude Include="Line.h" />
     <ClInclude Include="Note.h" />
     <ClInclude Include="resource.h" />
@@ -57,8 +57,8 @@
     <ClInclude Include="VScrollActions.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CommandFactory.cpp" />
-    <ClCompile Include="Commands.cpp" />
+    <ClCompile Include="CNTCommandFactory.cpp" />
+    <ClCompile Include="CNTCommands.cpp" />
     <ClCompile Include="Caret.cpp" />
     <ClCompile Include="CaretController.cpp" />
     <ClCompile Include="CharacterMetrics.cpp" />
@@ -74,8 +74,8 @@
     <ClCompile Include="HistoryBook.cpp" />
     <ClCompile Include="HScrollActionFactory.cpp" />
     <ClCompile Include="HScrollActions.cpp" />
-    <ClCompile Include="KeyActionFactory.cpp" />
-    <ClCompile Include="KeyActions.cpp" />
+    <ClCompile Include="CNTKeyActionFactory.cpp" />
+    <ClCompile Include="CNTKeyActions.cpp" />
     <ClCompile Include="Line.cpp" />
     <ClCompile Include="Note.cpp" />
     <ClCompile Include="Scanner.cpp" />

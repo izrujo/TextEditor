@@ -51,12 +51,6 @@
     <ClInclude Include="HScrollActions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="KeyActionFactory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="KeyActions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Line.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -99,12 +93,6 @@
     <ClInclude Include="Scanner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CommandFactory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Commands.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FindReplaceDialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -121,6 +109,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="String.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CNTCommandFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CNTCommands.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CNTKeyActionFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CNTKeyActions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -156,12 +156,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HScrollActions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="KeyActionFactory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="KeyActions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Line.cpp">
@@ -203,12 +197,6 @@
     <ClCompile Include="Scanner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CommandFactory.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Commands.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FindReplaceDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -225,6 +213,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="String.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNTCommands.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNTCommandFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNTKeyActionFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNTKeyActions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

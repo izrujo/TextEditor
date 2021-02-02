@@ -1,10 +1,10 @@
+#if 0
 
 #include "Stack.h"
 
 #include <iostream>
 using namespace std;
 
-#if 0
 int main(int argc, char* argv[]) {
 	Long object;
 	Long top;
@@ -115,13 +115,13 @@ if ((type == "Wirte" || type == "ImeChar" || type == "Delete" || type == "Backsp
 //========== 실행 취소 추가 ==========
 #endif
 //HistoryBook 스택 잘 돌아가는지 확인하기
+#if 0
 #include "HistoryBook.h"
 #include "Commands.h"
 #include "CommandFactory.h"
 #include "resource.h"
 
 int main(int agrc, char* argv[]) {
-#if 0
 	CommandFactory factory;
 	Command* command;
 	Command* ret;
@@ -191,8 +191,8 @@ int main(int agrc, char* argv[]) {
 	if (historyBook != 0) {
 		delete historyBook;
 	}
-#endif
 
 	return 0;
 
 }
+#endif

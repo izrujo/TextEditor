@@ -1,5 +1,5 @@
 #include "HistoryBook.h"
-#include "Commands.h"
+#include "CNTCommands.h"
 
 HistoryBook::HistoryBook(Long capacity)
 	: commands(capacity) {
@@ -11,8 +11,8 @@ HistoryBook::HistoryBook(Long capacity)
 HistoryBook::HistoryBook(const HistoryBook& source)
 	: commands(source.capacity) {
 	
-	Stack<Command*> tempForSource(source.commands);
-	Stack<Command*> temp(source.capacity);
+	Stack<CNTCommand*> tempForSource(source.commands);
+	Stack<CNTCommand*> temp(source.capacity);
 	Long i = 0;
 	while (i < source.length) {
 		temp.Push(tempForSource.Top()->Clone());
@@ -55,7 +55,7 @@ HistoryBook& HistoryBook::operator=(const HistoryBook& source) {
 
 	this->commands = source.commands;
 
-	Stack<Command*> temp(source.capacity);
+	Stack<CNTCommand*> temp(source.capacity);
 	i = 0;
 	while (i < source.length) {
 		temp.Push(this->commands.Top()->Clone());
@@ -77,7 +77,7 @@ HistoryBook& HistoryBook::operator=(const HistoryBook& source) {
 	return *this;
 }
 
-Long HistoryBook::Write(Command* command) {
+Long HistoryBook::Write(CNTCommand* command) {
 	this->top = this->commands.Push(command);
 	if (this->length >= this->capacity) {
 		this->capacity++;
@@ -99,7 +99,7 @@ Long HistoryBook::Erase() {
 	return -1;
 }
 
-Command* HistoryBook::OpenAt() {
+CNTCommand* HistoryBook::OpenAt() {
 	return this->commands.Top();
 }
 

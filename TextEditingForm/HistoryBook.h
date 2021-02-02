@@ -3,7 +3,7 @@
 
 #include "Stack.h"
 
-class Command;
+class CNTCommand;
 
 class HistoryBook {
 public:
@@ -12,9 +12,9 @@ public:
 	~HistoryBook();
 	HistoryBook& operator=(const HistoryBook& source);
 
-	Long Write(Command* command);
+	Long Write(CNTCommand* command);
 	Long Erase();
-	Command* OpenAt();
+	CNTCommand* OpenAt();
 	void Empty();
 	bool IsEmpty();
 
@@ -23,7 +23,7 @@ public:
 	Long GetTop() const;
 
 private:
-	Stack<Command*> commands;
+	Stack<CNTCommand*> commands;
 	Long capacity;
 	Long length;
 	Long top;

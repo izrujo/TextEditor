@@ -1,4 +1,4 @@
-#include "Commands.h"
+#include "CNTCommands.h"
 #include "TextEditingForm.h"
 #include "GlyphFactory.h"
 #include "Glyph.h"
@@ -18,62 +18,62 @@
 
 #pragma warning(disable:4996)
 
-Command::Command(TextEditingForm* textEditingForm) {
+CNTCommand::CNTCommand(TextEditingForm* textEditingForm) {
 	this->textEditingForm = textEditingForm;
 }
 
-Command::Command(const Command& source) {
+CNTCommand::CNTCommand(const CNTCommand& source) {
 	this->textEditingForm = source.textEditingForm;
 }
 
-Command::~Command() {
+CNTCommand::~CNTCommand() {
 
 }
 
-Command& Command::operator=(const Command& source) {
+CNTCommand& CNTCommand::operator=(const CNTCommand& source) {
 	this->textEditingForm = source.textEditingForm;
 
 	return *this;
 }
 
-void Command::Unexecute() {
+void CNTCommand::Unexecute() {
 
 }
 
-Long Command::Add(Command* command) {
+Long CNTCommand::Add(CNTCommand* command) {
 	return -1;
 }
 
-Long Command::Remove(Long index) {
+Long CNTCommand::Remove(Long index) {
 	return -1;
 }
 
-Command* Command::GetAt(Long index) {
+CNTCommand* CNTCommand::GetAt(Long index) {
 	return 0;
 }
 
-Long Command::GetCapacity() const {
+Long CNTCommand::GetCapacity() const {
 	return 0;
 }
 
-Long Command::GetLength() const {
+Long CNTCommand::GetLength() const {
 	return -1;
 }
 
 //////////////////// Composite ////////////////////
-//MacroCommand
-MacroCommand::MacroCommand(TextEditingForm* textEditingForm, Long capacity)
-	: Command(textEditingForm), commands(10) {
+//CNTMacroCommand
+CNTMacroCommand::CNTMacroCommand(TextEditingForm* textEditingForm, Long capacity)
+	: CNTCommand(textEditingForm), commands(10) {
 	this->capacity = 10;
 	this->length = 0;
 }
 
-MacroCommand::MacroCommand(const MacroCommand& source)
-	: Command(source.textEditingForm), commands(source.capacity) {
-	Command* command;
+CNTMacroCommand::CNTMacroCommand(const CNTMacroCommand& source)
+	: CNTCommand(source.textEditingForm), commands(source.capacity) {
+	CNTCommand* command;
 	Long i = 0;
 	while (i < source.length) {
-		command = const_cast<MacroCommand&>(source).commands[i]->Clone();
+		command = const_cast<CNTMacroCommand&>(source).commands[i]->Clone();
 		this->commands.Store(i, command);
 		i++;
 	}
@@ -81,7 +81,7 @@ MacroCommand::MacroCommand(const MacroCommand& source)
 	this->length = source.length;
 }
 
-MacroCommand::~MacroCommand() {
+CNTMacroCommand::~CNTMacroCommand() {
 	Long i = 0;
 	while (i < this->length) {
 		if (this->commands[i] != 0) {
@@ -91,8 +91,8 @@ MacroCommand::~MacroCommand() {
 	}
 }
 
-MacroCommand& MacroCommand::operator=(const MacroCommand& source) {
-	Command::operator=(source);
+CNTMacroCommand& CNTMacroCommand::operator=(const CNTMacroCommand& source) {
+	CNTCommand::operator=(source);
 	Long i = 0;
 	while (i < this->length) {
 		if (this->commands[i] != 0) {
@@ -106,7 +106,7 @@ MacroCommand& MacroCommand::operator=(const MacroCommand& source) {
 
 	i = 0;
 	while (i < this->length) {
-		this->commands.Modify(i, const_cast<MacroCommand&>(source).commands[i]->Clone());
+		this->commands.Modify(i, const_cast<CNTMacroCommand&>(source).commands[i]->Clone());
 		i++;
 	}
 
@@ -115,7 +115,7 @@ MacroCommand& MacroCommand::operator=(const MacroCommand& source) {
 	return *this;
 }
 
-void MacroCommand::Execute() {
+void CNTMacroCommand::Execute() {
 	Long i = 0;
 	while (i < this->length) {
 		this->commands[i]->Execute();
@@ -123,7 +123,7 @@ void MacroCommand::Execute() {
 	}
 }
 
-void MacroCommand::Unexecute() {
+void CNTMacroCommand::Unexecute() {
 	Long i = this->length - 1;
 	while (i >= 0) {
 		this->commands[i]->Unexecute();
@@ -131,7 +131,7 @@ void MacroCommand::Unexecute() {
 	}
 }
 
-Long MacroCommand::Add(Command* command) {
+Long CNTMacroCommand::Add(CNTCommand* command) {
 	Long index;
 	if (this->length < this->capacity) {
 		index = this->commands.Store(this->length, command);
@@ -145,7 +145,7 @@ Long MacroCommand::Add(Command* command) {
 	return index;
 }
 
-Long MacroCommand::Remove(Long index) {
+Long CNTMacroCommand::Remove(Long index) {
 	if (this->commands[index] != 0) {
 		delete this->commands.GetAt(index);
 	}
@@ -156,42 +156,42 @@ Long MacroCommand::Remove(Long index) {
 	return index;
 }
 
-Command* MacroCommand::GetAt(Long index) {
+CNTCommand* CNTMacroCommand::GetAt(Long index) {
 	return this->commands.GetAt(index);
 }
 
-string MacroCommand::GetType() {
-	return "Macro";
+string CNTMacroCommand::GetType() {
+	return "CNTMacro";
 }
 
-Command* MacroCommand::Clone() {
-	return new MacroCommand(*this);
+CNTCommand* CNTMacroCommand::Clone() {
+	return new CNTMacroCommand(*this);
 }
 //////////////////// Composite ////////////////////
 
 //////////////////// Basic ////////////////////
-//WriteBasicCommand
-WriteBasicCommand::WriteBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTWriteBasicCommand
+CNTWriteBasicCommand::CNTWriteBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-WriteBasicCommand::WriteBasicCommand(const WriteBasicCommand& source)
-	: Command(source) {
+CNTWriteBasicCommand::CNTWriteBasicCommand(const CNTWriteBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-WriteBasicCommand::~WriteBasicCommand() {
+CNTWriteBasicCommand::~CNTWriteBasicCommand() {
 
 }
 
-WriteBasicCommand& WriteBasicCommand::operator=(const WriteBasicCommand& source) {
-	Command::operator=(source);
+CNTWriteBasicCommand& CNTWriteBasicCommand::operator=(const CNTWriteBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void WriteBasicCommand::Execute() {
+void CNTWriteBasicCommand::Execute() {
 	GlyphFactory glyphFactory;
 	TCHAR content[2];
 	int nChar = this->textEditingForm->GetCurrentCharacter();
@@ -222,36 +222,36 @@ void WriteBasicCommand::Execute() {
 	}
 }
 
-string WriteBasicCommand::GetType() {
-	return "WriteBasic";
+string CNTWriteBasicCommand::GetType() {
+	return "CNTWriteBasic";
 }
 
-Command* WriteBasicCommand::Clone() {
-	return new WriteBasicCommand(*this);
+CNTCommand* CNTWriteBasicCommand::Clone() {
+	return new CNTWriteBasicCommand(*this);
 }
 
-//ImeCompositionBasicCommand
-ImeCompositionBasicCommand::ImeCompositionBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-ImeCompositionBasicCommand::ImeCompositionBasicCommand(const ImeCompositionBasicCommand& source)
-	: Command(source) {
+//CNTImeCompositionBasicCommand
+CNTImeCompositionBasicCommand::CNTImeCompositionBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-ImeCompositionBasicCommand::~ImeCompositionBasicCommand() {
+CNTImeCompositionBasicCommand::CNTImeCompositionBasicCommand(const CNTImeCompositionBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-ImeCompositionBasicCommand& ImeCompositionBasicCommand::operator=(const ImeCompositionBasicCommand& source) {
-	Command::operator=(source);
+CNTImeCompositionBasicCommand::~CNTImeCompositionBasicCommand() {
+
+}
+
+CNTImeCompositionBasicCommand& CNTImeCompositionBasicCommand::operator=(const CNTImeCompositionBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ImeCompositionBasicCommand::Execute() {
+void CNTImeCompositionBasicCommand::Execute() {
 	TCHAR(*buffer) = new TCHAR[2];
 	buffer = this->textEditingForm->GetCurrentBuffer();
 
@@ -280,36 +280,36 @@ void ImeCompositionBasicCommand::Execute() {
 	}
 }
 
-string ImeCompositionBasicCommand::GetType() {
-	return "ImeCompositionBasic";
+string CNTImeCompositionBasicCommand::GetType() {
+	return "CNTImeCompositionBasic";
 }
 
-Command* ImeCompositionBasicCommand::Clone() {
-	return new ImeCompositionBasicCommand(*this);
+CNTCommand* CNTImeCompositionBasicCommand::Clone() {
+	return new CNTImeCompositionBasicCommand(*this);
 }
 
-//ImeCharBasicCommand
-ImeCharBasicCommand::ImeCharBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-ImeCharBasicCommand::ImeCharBasicCommand(const ImeCharBasicCommand& source)
-	: Command(source) {
+//CNTImeCharBasicCommand
+CNTImeCharBasicCommand::CNTImeCharBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-ImeCharBasicCommand::~ImeCharBasicCommand() {
+CNTImeCharBasicCommand::CNTImeCharBasicCommand(const CNTImeCharBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-ImeCharBasicCommand& ImeCharBasicCommand::operator=(const ImeCharBasicCommand& source) {
-	Command::operator=(source);
+CNTImeCharBasicCommand::~CNTImeCharBasicCommand() {
+
+}
+
+CNTImeCharBasicCommand& CNTImeCharBasicCommand::operator=(const CNTImeCharBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ImeCharBasicCommand::Execute() {
+void CNTImeCharBasicCommand::Execute() {
 	TCHAR buffer[2];
 	buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
 	buffer[1] = this->textEditingForm->GetCurrentBuffer()[1];
@@ -330,36 +330,36 @@ void ImeCharBasicCommand::Execute() {
 	}
 }
 
-string ImeCharBasicCommand::GetType() {
-	return "ImeCharBasic";
+string CNTImeCharBasicCommand::GetType() {
+	return "CNTImeCharBasic";
 }
 
-Command* ImeCharBasicCommand::Clone() {
-	return new ImeCharBasicCommand(*this);
+CNTCommand* CNTImeCharBasicCommand::Clone() {
+	return new CNTImeCharBasicCommand(*this);
 }
 
-//DeleteBasicCommand
-DeleteBasicCommand::DeleteBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-DeleteBasicCommand::DeleteBasicCommand(const DeleteBasicCommand& source)
-	: Command(source) {
+//CNTDeleteBasicCommand
+CNTDeleteBasicCommand::CNTDeleteBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-DeleteBasicCommand::~DeleteBasicCommand() {
+CNTDeleteBasicCommand::CNTDeleteBasicCommand(const CNTDeleteBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-DeleteBasicCommand& DeleteBasicCommand::operator=(const DeleteBasicCommand& source) {
-	Command::operator=(source);
+CNTDeleteBasicCommand::~CNTDeleteBasicCommand() {
+
+}
+
+CNTDeleteBasicCommand& CNTDeleteBasicCommand::operator=(const CNTDeleteBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void DeleteBasicCommand::Execute() {
+void CNTDeleteBasicCommand::Execute() {
 	Long row = this->textEditingForm->note->GetCurrent();
 	Long column = this->textEditingForm->current->GetCurrent();
 	Long noteLength = this->textEditingForm->note->GetLength();
@@ -375,36 +375,36 @@ void DeleteBasicCommand::Execute() {
 	}
 }
 
-string DeleteBasicCommand::GetType() {
+string CNTDeleteBasicCommand::GetType() {
 	return "DeleteBasic";
 }
 
-Command* DeleteBasicCommand::Clone() {
-	return new DeleteBasicCommand(*this);
+CNTCommand* CNTDeleteBasicCommand::Clone() {
+	return new CNTDeleteBasicCommand(*this);
 }
 
-//CopyBasicCommand
-CopyBasicCommand::CopyBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-CopyBasicCommand::CopyBasicCommand(const CopyBasicCommand& source)
-	: Command(source) {
+//CNTCopyBasicCommand
+CNTCopyBasicCommand::CNTCopyBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-CopyBasicCommand::~CopyBasicCommand() {
+CNTCopyBasicCommand::CNTCopyBasicCommand(const CNTCopyBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-CopyBasicCommand& CopyBasicCommand::operator=(const CopyBasicCommand& source) {
-	Command::operator=(source);
+CNTCopyBasicCommand::~CNTCopyBasicCommand() {
+
+}
+
+CNTCopyBasicCommand& CNTCopyBasicCommand::operator=(const CNTCopyBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CopyBasicCommand::Execute() {
+void CNTCopyBasicCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		Long start = this->textEditingForm->selection->GetStart();
 		Long end = this->textEditingForm->selection->GetEnd();
@@ -454,36 +454,36 @@ void CopyBasicCommand::Execute() {
 	}
 }
 
-string CopyBasicCommand::GetType() {
-	return "CopyBasic";
+string CNTCopyBasicCommand::GetType() {
+	return "CNTCopyBasic";
 }
 
-Command* CopyBasicCommand::Clone() {
-	return new CopyBasicCommand(*this);
+CNTCommand* CNTCopyBasicCommand::Clone() {
+	return new CNTCopyBasicCommand(*this);
 }
 
-//DeleteSelectionBasicCommand
-DeleteSelectionBasicCommand::DeleteSelectionBasicCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-DeleteSelectionBasicCommand::DeleteSelectionBasicCommand(const DeleteSelectionBasicCommand& source)
-	: Command(source) {
+//CNTDeleteSelectionBasicCommand
+CNTDeleteSelectionBasicCommand::CNTDeleteSelectionBasicCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-DeleteSelectionBasicCommand::~DeleteSelectionBasicCommand() {
+CNTDeleteSelectionBasicCommand::CNTDeleteSelectionBasicCommand(const CNTDeleteSelectionBasicCommand& source)
+	: CNTCommand(source) {
 
 }
 
-DeleteSelectionBasicCommand& DeleteSelectionBasicCommand::operator=(const DeleteSelectionBasicCommand& source) {
-	Command::operator=(source);
+CNTDeleteSelectionBasicCommand::~CNTDeleteSelectionBasicCommand() {
+
+}
+
+CNTDeleteSelectionBasicCommand& CNTDeleteSelectionBasicCommand::operator=(const CNTDeleteSelectionBasicCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void DeleteSelectionBasicCommand::Execute() {
+void CNTDeleteSelectionBasicCommand::Execute() {
 	Long i;
 	Long start = this->textEditingForm->selection->GetStart();
 	Long end = this->textEditingForm->selection->GetEnd();
@@ -520,37 +520,37 @@ void DeleteSelectionBasicCommand::Execute() {
 	}
 }
 
-string DeleteSelectionBasicCommand::GetType() {
-	return "DeleteSelectionBasic";
+string CNTDeleteSelectionBasicCommand::GetType() {
+	return "CNTDeleteSelectionBasic";
 }
 
-Command* DeleteSelectionBasicCommand::Clone() {
-	return new DeleteSelectionBasicCommand(*this);
+CNTCommand* CNTDeleteSelectionBasicCommand::Clone() {
+	return new CNTDeleteSelectionBasicCommand(*this);
 }
 //////////////////// Basic ////////////////////
 
 //////////////////// Main ////////////////////
-//WriteCommand
-WriteCommand::WriteCommand(TextEditingForm * textEditingForm)
-	: Command(textEditingForm) {
+//CNTWriteCommand
+CNTWriteCommand::CNTWriteCommand(TextEditingForm * textEditingForm)
+	: CNTCommand(textEditingForm) {
 	this->nChar = -1;
 	this->row = -1;
 	this->column = -1;
 }
 
-WriteCommand::WriteCommand(const WriteCommand& source)
-	: Command(source) {
+CNTWriteCommand::CNTWriteCommand(const CNTWriteCommand& source)
+	: CNTCommand(source) {
 	this->nChar = source.nChar;
 	this->row = source.row;
 	this->column = source.column;
 }
 
-WriteCommand::~WriteCommand() {
+CNTWriteCommand::~CNTWriteCommand() {
 
 }
 
-WriteCommand& WriteCommand::operator=(const WriteCommand& source) {
-	Command::operator=(source);
+CNTWriteCommand& CNTWriteCommand::operator=(const CNTWriteCommand& source) {
+	CNTCommand::operator=(source);
 	this->nChar = source.nChar;
 	this->row = source.row;
 	this->column = source.column;
@@ -558,7 +558,7 @@ WriteCommand& WriteCommand::operator=(const WriteCommand& source) {
 	return *this;
 }
 
-void WriteCommand::Execute() {
+void CNTWriteCommand::Execute() {
 	if (this->nChar == -1 && this->row == -1 && this->column == -1) {
 		this->nChar = this->textEditingForm->GetCurrentCharacter();
 		this->row = this->textEditingForm->note->GetCurrent();
@@ -585,7 +585,7 @@ void WriteCommand::Execute() {
 	this->textEditingForm->current->Move(this->column);
 	//========== 磊悼 俺青 贸府 1 ==========
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_WRITE, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_WRITE, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	Long rowIndex;
@@ -606,7 +606,7 @@ void WriteCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-void WriteCommand::Unexecute() {
+void CNTWriteCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 1 ==========
 	DummyManager* dummyManager = 0;
 	Long distance;
@@ -657,36 +657,36 @@ void WriteCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-string WriteCommand::GetType() {
-	return "Write";
+string CNTWriteCommand::GetType() {
+	return "CNTWrite";
 }
 
-Command* WriteCommand::Clone() {
-	return new WriteCommand(*this);
+CNTCommand* CNTWriteCommand::Clone() {
+	return new CNTWriteCommand(*this);
 }
 
-//ImeCompositionCommand
-ImeCompositionCommand::ImeCompositionCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-ImeCompositionCommand::ImeCompositionCommand(const ImeCompositionCommand& source)
-	: Command(source) {
+//CNTImeCompositionCommand
+CNTImeCompositionCommand::CNTImeCompositionCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-ImeCompositionCommand::~ImeCompositionCommand() {
+CNTImeCompositionCommand::CNTImeCompositionCommand(const CNTImeCompositionCommand& source)
+	: CNTCommand(source) {
 
 }
 
-ImeCompositionCommand& ImeCompositionCommand::operator=(const ImeCompositionCommand& source) {
-	Command::operator=(source);
+CNTImeCompositionCommand::~CNTImeCompositionCommand() {
+
+}
+
+CNTImeCompositionCommand& CNTImeCompositionCommand::operator=(const CNTImeCompositionCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ImeCompositionCommand::Execute() {
+void CNTImeCompositionCommand::Execute() {
 	TCHAR(*buffer) = new TCHAR[2];
 	buffer = this->textEditingForm->GetCurrentBuffer();
 
@@ -714,7 +714,7 @@ void ImeCompositionCommand::Execute() {
 		distance--; //磊悼俺青 眠啊
 	}
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_IMECOMPOSITION, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_IMECOMPOSITION, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	Long rowIndex;
@@ -731,17 +731,17 @@ void ImeCompositionCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-string ImeCompositionCommand::GetType() {
-	return "ImeComposition";
+string CNTImeCompositionCommand::GetType() {
+	return "CNTImeComposition";
 }
 
-Command* ImeCompositionCommand::Clone() {
-	return new ImeCompositionCommand(*this);
+CNTCommand* CNTImeCompositionCommand::Clone() {
+	return new CNTImeCompositionCommand(*this);
 }
 
-//ImeCharCommand
-ImeCharCommand::ImeCharCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTImeCharCommand
+CNTImeCharCommand::CNTImeCharCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 	this->buffer = new TCHAR[2];
 	this->buffer[0] = '\0';
 	this->buffer[1] = '\0';
@@ -749,8 +749,8 @@ ImeCharCommand::ImeCharCommand(TextEditingForm* textEditingForm)
 	this->column = -1;
 }
 
-ImeCharCommand::ImeCharCommand(const ImeCharCommand& source)
-	: Command(source) {
+CNTImeCharCommand::CNTImeCharCommand(const CNTImeCharCommand& source)
+	: CNTCommand(source) {
 	this->buffer = new TCHAR[2];
 	this->buffer[0] = source.buffer[0];
 	this->buffer[1] = source.buffer[1];
@@ -758,14 +758,14 @@ ImeCharCommand::ImeCharCommand(const ImeCharCommand& source)
 	this->column = source.column;
 }
 
-ImeCharCommand::~ImeCharCommand() {
+CNTImeCharCommand::~CNTImeCharCommand() {
 	if (this->buffer != 0) {
 		delete[] this->buffer;
 	}
 }
 
-ImeCharCommand& ImeCharCommand::operator=(const ImeCharCommand& source) {
-	Command::operator=(source);
+CNTImeCharCommand& CNTImeCharCommand::operator=(const CNTImeCharCommand& source) {
+	CNTCommand::operator=(source);
 	if (this->buffer != 0) {
 		delete[] this->buffer;
 	}
@@ -778,7 +778,7 @@ ImeCharCommand& ImeCharCommand::operator=(const ImeCharCommand& source) {
 	return *this;
 }
 
-void ImeCharCommand::Execute() {
+void CNTImeCharCommand::Execute() {
 	bool needtoRemove = false;
 	if (this->buffer[0] == '\0' && this->row == -1 && this->column == -1) {
 		this->buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
@@ -817,7 +817,7 @@ void ImeCharCommand::Execute() {
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
 	this->textEditingForm->current->Move(this->column);
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_IMECHAR, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_IMECHAR, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	Long rowIndex;
@@ -834,7 +834,7 @@ void ImeCharCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-void ImeCharCommand::Unexecute() {
+void CNTImeCharCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 1 ==========
 	DummyManager* dummyManager = 0;
 	Long distance;
@@ -874,17 +874,17 @@ void ImeCharCommand::Unexecute() {
 	}
 }
 
-string ImeCharCommand::GetType() {
-	return "ImeChar";
+string CNTImeCharCommand::GetType() {
+	return "CNTImeChar";
 }
 
-Command* ImeCharCommand::Clone() {
-	return new ImeCharCommand(*this);
+CNTCommand* CNTImeCharCommand::Clone() {
+	return new CNTImeCharCommand(*this);
 }
 
-//DeleteCommand
-DeleteCommand::DeleteCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTDeleteCommand
+CNTDeleteCommand::CNTDeleteCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 	this->row = -1;
 	this->noteLength = -1;
 	this->column = -1;
@@ -892,8 +892,8 @@ DeleteCommand::DeleteCommand(TextEditingForm* textEditingForm)
 	this->character = 0;
 }
 
-DeleteCommand::DeleteCommand(const DeleteCommand& source)
-	: Command(source) {
+CNTDeleteCommand::CNTDeleteCommand(const CNTDeleteCommand& source)
+	: CNTCommand(source) {
 	this->row = source.row;
 	this->noteLength = source.noteLength;
 	this->column = source.column;
@@ -904,14 +904,14 @@ DeleteCommand::DeleteCommand(const DeleteCommand& source)
 	}
 }
 
-DeleteCommand::~DeleteCommand() {
+CNTDeleteCommand::~CNTDeleteCommand() {
 	if (this->character != NULL) {
 		delete this->character;
 	}
 }
 
-DeleteCommand& DeleteCommand::operator=(const DeleteCommand& source) {
-	Command::operator=(source);
+CNTDeleteCommand& CNTDeleteCommand::operator=(const CNTDeleteCommand& source) {
+	CNTCommand::operator=(source);
 	this->row = source.row;
 	this->noteLength = source.noteLength;
 	this->column = source.column;
@@ -924,7 +924,7 @@ DeleteCommand& DeleteCommand::operator=(const DeleteCommand& source) {
 	return *this;
 }
 
-void DeleteCommand::Execute() {
+void CNTDeleteCommand::Execute() {
 	if (this->row == -1 && this->noteLength == -1 && this->column == -1 && this->lineLength == -1 && this->character == 0) {
 		this->row = this->textEditingForm->note->GetCurrent();
 		this->noteLength = this->textEditingForm->note->GetLength();
@@ -962,7 +962,7 @@ void DeleteCommand::Execute() {
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->row);
 	this->textEditingForm->current->Move(this->column);
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_DELETE, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_DELETE, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	Long rowIndex;
@@ -979,7 +979,7 @@ void DeleteCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-void DeleteCommand::Unexecute() {
+void CNTDeleteCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 1 ==========
 	DummyManager* dummyManager = 0;
 	Long distance;
@@ -1033,34 +1033,34 @@ void DeleteCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-string DeleteCommand::GetType() {
+string CNTDeleteCommand::GetType() {
 	return "Delete";
 }
 
-Command* DeleteCommand::Clone() {
-	return new DeleteCommand(*this);
+CNTCommand* CNTDeleteCommand::Clone() {
+	return new CNTDeleteCommand(*this);
 }
 
-//CopyCommand
-CopyCommand::CopyCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTCopyCommand
+CNTCopyCommand::CNTCopyCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-CopyCommand::CopyCommand(const CopyCommand& source)
-	: Command(source) {
+CNTCopyCommand::CNTCopyCommand(const CNTCopyCommand& source)
+	: CNTCommand(source) {
 }
 
-CopyCommand::~CopyCommand() {
+CNTCopyCommand::~CNTCopyCommand() {
 
 }
 
-CopyCommand& CopyCommand::operator=(const CopyCommand& source) {
-	Command::operator=(source);
+CNTCopyCommand& CNTCopyCommand::operator=(const CNTCopyCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CopyCommand::Execute() {
+void CNTCopyCommand::Execute() {
 	Long row = this->textEditingForm->note->GetCurrent();
 	Long column = this->textEditingForm->current->GetCurrent();
 	Long originStart = this->textEditingForm->selection->GetStart();
@@ -1083,7 +1083,7 @@ void CopyCommand::Execute() {
 	}
 	//========== 磊悼 俺青 贸府 1 ==========
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_COPY, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_COPY, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	if (dummyManager != NULL) {
@@ -1109,17 +1109,17 @@ void CopyCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-string CopyCommand::GetType() {
-	return "Copy";
+string CNTCopyCommand::GetType() {
+	return "CNTCopy";
 }
 
-Command* CopyCommand::Clone() {
-	return new CopyCommand(*this);
+CNTCommand* CNTCopyCommand::Clone() {
+	return new CNTCopyCommand(*this);
 }
 
-//DeleteSelectionCommand
-DeleteSelectionCommand::DeleteSelectionCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTDeleteSelectionCommand
+CNTDeleteSelectionCommand::CNTDeleteSelectionCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 	this->startRow = -1;
 	this->startColumn = -1;
 	this->endRow = -1;
@@ -1127,8 +1127,8 @@ DeleteSelectionCommand::DeleteSelectionCommand(TextEditingForm* textEditingForm)
 	this->selecteds = "";
 }
 
-DeleteSelectionCommand::DeleteSelectionCommand(const DeleteSelectionCommand& source)
-	: Command(source) {
+CNTDeleteSelectionCommand::CNTDeleteSelectionCommand(const CNTDeleteSelectionCommand& source)
+	: CNTCommand(source) {
 	this->startRow = source.startRow;
 	this->startColumn = source.startColumn;
 	this->endRow = source.endRow;
@@ -1136,12 +1136,12 @@ DeleteSelectionCommand::DeleteSelectionCommand(const DeleteSelectionCommand& sou
 	this->selecteds = source.selecteds;
 }
 
-DeleteSelectionCommand::~DeleteSelectionCommand() {
+CNTDeleteSelectionCommand::~CNTDeleteSelectionCommand() {
 
 }
 
-DeleteSelectionCommand& DeleteSelectionCommand::operator=(const DeleteSelectionCommand& source) {
-	Command::operator=(source);
+CNTDeleteSelectionCommand& CNTDeleteSelectionCommand::operator=(const CNTDeleteSelectionCommand& source) {
+	CNTCommand::operator=(source);
 	this->startRow = source.startRow;
 	this->startColumn = source.startColumn;
 	this->endRow = source.endRow;
@@ -1151,7 +1151,7 @@ DeleteSelectionCommand& DeleteSelectionCommand::operator=(const DeleteSelectionC
 	return *this;
 }
 
-void DeleteSelectionCommand::Execute() {
+void CNTDeleteSelectionCommand::Execute() {
 	//startRow, startColumn, endRow, endColumn, selecteds(string)
 	if (this->startRow == -1 && this->startColumn == -1 && this->endRow == -1 && this->endColumn == -1 && this->selecteds == "") {
 		this->startRow = this->textEditingForm->selection->GetStart();
@@ -1217,7 +1217,7 @@ void DeleteSelectionCommand::Execute() {
 	this->textEditingForm->selection = new Selection(this->startRow, this->endRow);
 	this->textEditingForm->note->Select(this->startRow, this->startColumn, this->endRow, this->endColumn);
 
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_BASIC_DELETESELECTION, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_BASIC_DELETESELECTION, 0));
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	Long rowIndex;
@@ -1234,7 +1234,7 @@ void DeleteSelectionCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-void DeleteSelectionCommand::Unexecute() {
+void CNTDeleteSelectionCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 1 ==========
 	DummyManager* dummyManager = 0;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
@@ -1312,52 +1312,52 @@ void DeleteSelectionCommand::Unexecute() {
 	this->textEditingForm->current->Move(this->endColumn);
 }
 
-string DeleteSelectionCommand::GetType() {
-	return "DeleteSelection";
+string CNTDeleteSelectionCommand::GetType() {
+	return "CNTDeleteSelection";
 }
 
-Command* DeleteSelectionCommand::Clone() {
-	return new DeleteSelectionCommand(*this);
+CNTCommand* CNTDeleteSelectionCommand::Clone() {
+	return new CNTDeleteSelectionCommand(*this);
 }
 
-//CutCommand
-CutCommand::CutCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-CutCommand::CutCommand(const CutCommand& source)
-	: Command(source) {
+//CNTCutCommand
+CNTCutCommand::CNTCutCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-CutCommand::~CutCommand() {
+CNTCutCommand::CNTCutCommand(const CNTCutCommand& source)
+	: CNTCommand(source) {
 
 }
 
-CutCommand& CutCommand::operator=(const CutCommand& source) {
-	Command::operator=(source);
+CNTCutCommand::~CNTCutCommand() {
+
+}
+
+CNTCutCommand& CNTCutCommand::operator=(const CNTCutCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CutCommand::Execute() {
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_COPY, 0));
-	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+void CNTCutCommand::Execute() {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_COPY, 0));
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_DELETESELECTION, 0));
 }
 
-string CutCommand::GetType() {
-	return "Cut";
+string CNTCutCommand::GetType() {
+	return "CNTCut";
 }
 
-Command* CutCommand::Clone() {
-	return new CutCommand(*this);
+CNTCommand* CNTCutCommand::Clone() {
+	return new CNTCutCommand(*this);
 }
 
 
-//PasteCommand
-PasteCommand::PasteCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTPasteCommand
+CNTPasteCommand::CNTPasteCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 	this->startRow = -1;
 	this->startColumn = -1;
 	this->endRow = -1;
@@ -1365,8 +1365,8 @@ PasteCommand::PasteCommand(TextEditingForm* textEditingForm)
 	this->pasteds = "";
 }
 
-PasteCommand::PasteCommand(const PasteCommand& source)
-	: Command(source) {
+CNTPasteCommand::CNTPasteCommand(const CNTPasteCommand& source)
+	: CNTCommand(source) {
 	this->startRow = source.startRow;
 	this->startColumn = source.startColumn;
 	this->endRow = source.endRow;
@@ -1374,12 +1374,12 @@ PasteCommand::PasteCommand(const PasteCommand& source)
 	this->pasteds = source.pasteds;
 }
 
-PasteCommand::~PasteCommand() {
+CNTPasteCommand::~CNTPasteCommand() {
 
 }
 
-PasteCommand& PasteCommand::operator=(const PasteCommand& source) {
-	Command::operator=(source);
+CNTPasteCommand& CNTPasteCommand::operator=(const CNTPasteCommand& source) {
+	CNTCommand::operator=(source);
 	this->startRow = source.startRow;
 	this->startColumn = source.startColumn;
 	this->endRow = source.endRow;
@@ -1389,10 +1389,10 @@ PasteCommand& PasteCommand::operator=(const PasteCommand& source) {
 	return *this;
 }
 
-void PasteCommand::Execute() {
+void CNTPasteCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->SetIsDeleteSelectionByInput(TRUE);
-		this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+		this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_DELETESELECTION, 0));
 		this->textEditingForm->SetIsDeleteSelectionByInput(FALSE);
 	}
 
@@ -1432,7 +1432,7 @@ void PasteCommand::Execute() {
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(this->startRow);
 	this->textEditingForm->current->Move(this->startColumn);
 
-	//========== Paste 角力 贸府 ==========
+	//========== CNTPaste 角力 贸府 ==========
 	//汗荤茄 巩磊凯阑 烙矫 Note肺 父甸促.
 	Scanner scanner(this->pasteds);
 	GlyphFactory glyphFactory;
@@ -1481,7 +1481,7 @@ void PasteCommand::Execute() {
 		this->endRow = this->textEditingForm->note->GetCurrent();
 		this->endColumn = this->textEditingForm->current->GetCurrent();
 	}
-	//========== Paste 角力 贸府 ==========
+	//========== CNTPaste 角力 贸府 ==========
 
 	//========== 磊悼 俺青 贸府 2 ==========
 	if (dummyManager != NULL) {
@@ -1504,7 +1504,7 @@ void PasteCommand::Execute() {
 	//========== 磊悼 俺青 贸府 2 ==========
 }
 
-void PasteCommand::Unexecute() {
+void CNTPasteCommand::Unexecute() {
 	//========== 磊悼 俺青 贸府 1 ==========
 	DummyManager* dummyManager = 0;
 	Long startDistance;
@@ -1567,36 +1567,36 @@ void PasteCommand::Unexecute() {
 	}
 }
 
-string PasteCommand::GetType() {
-	return "Paste";
+string CNTPasteCommand::GetType() {
+	return "CNTPaste";
 }
 
-Command* PasteCommand::Clone() {
-	return new PasteCommand(*this);
+CNTCommand* CNTPasteCommand::Clone() {
+	return new CNTPasteCommand(*this);
 }
 
-//SelectAllCommand
-SelectAllCommand::SelectAllCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
-
-}
-
-SelectAllCommand::SelectAllCommand(const SelectAllCommand& source)
-	: Command(source) {
+//CNTSelectAllCommand
+CNTSelectAllCommand::CNTSelectAllCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 
 }
 
-SelectAllCommand::~SelectAllCommand() {
+CNTSelectAllCommand::CNTSelectAllCommand(const CNTSelectAllCommand& source)
+	: CNTCommand(source) {
 
 }
 
-SelectAllCommand& SelectAllCommand::operator=(const SelectAllCommand& source) {
-	Command::operator=(source);
+CNTSelectAllCommand::~CNTSelectAllCommand() {
+
+}
+
+CNTSelectAllCommand& CNTSelectAllCommand::operator=(const CNTSelectAllCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void SelectAllCommand::Execute() {
+void CNTSelectAllCommand::Execute() {
 	Glyph* line;
 	Long j;
 	Long i = 0;
@@ -1623,34 +1623,34 @@ void SelectAllCommand::Execute() {
 	}
 }
 
-string SelectAllCommand::GetType() {
-	return "SelectAll";
+string CNTSelectAllCommand::GetType() {
+	return "CNTSelectAll";
 }
 
-Command* SelectAllCommand::Clone() {
-	return new SelectAllCommand(*this);
+CNTCommand* CNTSelectAllCommand::Clone() {
+	return new CNTSelectAllCommand(*this);
 }
 
-//UndoCommand
-UndoCommand::UndoCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTUndoCommand
+CNTUndoCommand::CNTUndoCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-UndoCommand::UndoCommand(const UndoCommand& source)
-	: Command(source) {
+CNTUndoCommand::CNTUndoCommand(const CNTUndoCommand& source)
+	: CNTCommand(source) {
 }
 
-UndoCommand::~UndoCommand() {
+CNTUndoCommand::~CNTUndoCommand() {
 
 }
 
-UndoCommand& UndoCommand::operator=(const UndoCommand& source) {
-	Command::operator=(source);
+CNTUndoCommand& CNTUndoCommand::operator=(const CNTUndoCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void UndoCommand::Execute() {
+void CNTUndoCommand::Execute() {
 	if (this->textEditingForm->undoHistoryBook->GetLength() > 0) {
 		if (this->textEditingForm->selection != NULL) {
 			delete this->textEditingForm->selection;
@@ -1658,7 +1658,7 @@ void UndoCommand::Execute() {
 			this->textEditingForm->note->UnselectAll();
 		}
 
-		Command* command = this->textEditingForm->undoHistoryBook->OpenAt();
+		CNTCommand* command = this->textEditingForm->undoHistoryBook->OpenAt();
 		command->Unexecute();
 
 		this->textEditingForm->redoHistoryBook->Write(command->Clone());
@@ -1667,36 +1667,36 @@ void UndoCommand::Execute() {
 	
 }
 
-string UndoCommand::GetType() {
-	return "Undo";
+string CNTUndoCommand::GetType() {
+	return "CNTUndo";
 }
 
-Command* UndoCommand::Clone() {
-	return new UndoCommand(*this);
+CNTCommand* CNTUndoCommand::Clone() {
+	return new CNTUndoCommand(*this);
 }
 
-//RedoCommand
-RedoCommand::RedoCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTRedoCommand
+CNTRedoCommand::CNTRedoCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-RedoCommand::RedoCommand(const RedoCommand& source)
-	: Command(source) {
+CNTRedoCommand::CNTRedoCommand(const CNTRedoCommand& source)
+	: CNTCommand(source) {
 }
 
-RedoCommand::~RedoCommand() {
+CNTRedoCommand::~CNTRedoCommand() {
 
 }
 
-RedoCommand& RedoCommand::operator=(const RedoCommand& source) {
-	Command::operator=(source);
+CNTRedoCommand& CNTRedoCommand::operator=(const CNTRedoCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void RedoCommand::Execute() {
+void CNTRedoCommand::Execute() {
 	if (this->textEditingForm->redoHistoryBook->GetLength() > 0) {
-		Command* command = this->textEditingForm->redoHistoryBook->OpenAt();
+		CNTCommand* command = this->textEditingForm->redoHistoryBook->OpenAt();
 		command->Execute();
 
 		this->textEditingForm->undoHistoryBook->Write(command->Clone());
@@ -1709,34 +1709,34 @@ void RedoCommand::Execute() {
 	}
 }
 
-string RedoCommand::GetType() {
-	return "Redo";
+string CNTRedoCommand::GetType() {
+	return "CNTRedo";
 }
 
-Command* RedoCommand::Clone() {
-	return new RedoCommand(*this);
+CNTCommand* CNTRedoCommand::Clone() {
+	return new CNTRedoCommand(*this);
 }
 
-//FindCommand
-FindCommand::FindCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTFindCommand
+CNTFindCommand::CNTFindCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-FindCommand::FindCommand(const FindCommand& source)
-	: Command(source) {
+CNTFindCommand::CNTFindCommand(const CNTFindCommand& source)
+	: CNTCommand(source) {
 }
 
-FindCommand::~FindCommand() {
+CNTFindCommand::~CNTFindCommand() {
 
 }
 
-FindCommand& FindCommand::operator=(const FindCommand& source) {
-	Command::operator=(source);
+CNTFindCommand& CNTFindCommand::operator=(const CNTFindCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void FindCommand::Execute() {
+void CNTFindCommand::Execute() {
 	if (this->textEditingForm->GetIsUnlockedFindReplaceDialog() == TRUE && this->textEditingForm->findReplaceDialog == NULL) {
 		string selectedContent = "";
 		if (this->textEditingForm->selection != NULL) {
@@ -1749,34 +1749,34 @@ void FindCommand::Execute() {
 	}
 }
 
-string FindCommand::GetType() {
-	return "Find";
+string CNTFindCommand::GetType() {
+	return "CNTFind";
 }
 
-Command* FindCommand::Clone() {
-	return new FindCommand(*this);
+CNTCommand* CNTFindCommand::Clone() {
+	return new CNTFindCommand(*this);
 }
 
-//ReplaceCommand
-ReplaceCommand::ReplaceCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTReplaceCommand
+CNTReplaceCommand::CNTReplaceCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ReplaceCommand::ReplaceCommand(const ReplaceCommand& source)
-	: Command(source) {
+CNTReplaceCommand::CNTReplaceCommand(const CNTReplaceCommand& source)
+	: CNTCommand(source) {
 }
 
-ReplaceCommand::~ReplaceCommand() {
+CNTReplaceCommand::~CNTReplaceCommand() {
 
 }
 
-ReplaceCommand& ReplaceCommand::operator=(const ReplaceCommand& source) {
-	Command::operator=(source);
+CNTReplaceCommand& CNTReplaceCommand::operator=(const CNTReplaceCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ReplaceCommand::Execute() {
+void CNTReplaceCommand::Execute() {
 	if (this->textEditingForm->GetIsUnlockedFindReplaceDialog() == TRUE && this->textEditingForm->findReplaceDialog == NULL) {
 		string selectedContent = "";
 		if (this->textEditingForm->selection != NULL) {
@@ -1789,36 +1789,36 @@ void ReplaceCommand::Execute() {
 	}
 }
 
-string ReplaceCommand::GetType() {
+string CNTReplaceCommand::GetType() {
 	return "Replace";
 }
 
-Command* ReplaceCommand::Clone() {
-	return new ReplaceCommand(*this);
+CNTCommand* CNTReplaceCommand::Clone() {
+	return new CNTReplaceCommand(*this);
 }
 //////////////////// Main ////////////////////
 
 //////////////////// Move ////////////////////
-//LeftCommand
-LeftCommand::LeftCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTLeftCommand
+CNTLeftCommand::CNTLeftCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-LeftCommand::LeftCommand(const LeftCommand& source)
-	: Command(source) {
+CNTLeftCommand::CNTLeftCommand(const CNTLeftCommand& source)
+	: CNTCommand(source) {
 }
 
-LeftCommand::~LeftCommand() {
+CNTLeftCommand::~CNTLeftCommand() {
 
 }
 
-LeftCommand& LeftCommand::operator=(const LeftCommand& source) {
-	Command::operator=(source);
+CNTLeftCommand& CNTLeftCommand::operator=(const CNTLeftCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void LeftCommand::Execute() {
+void CNTLeftCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		Long start = this->textEditingForm->selection->GetStart();
 		this->textEditingForm->note->Move(start);
@@ -1854,34 +1854,34 @@ void LeftCommand::Execute() {
 	}
 }
 
-string LeftCommand::GetType() {
-	return "Left";
+string CNTLeftCommand::GetType() {
+	return "CNTLeft";
 }
 
-Command* LeftCommand::Clone() {
-	return new LeftCommand(*this);
+CNTCommand* CNTLeftCommand::Clone() {
+	return new CNTLeftCommand(*this);
 }
 
-//RightCommand
-RightCommand::RightCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTRightCommand
+CNTRightCommand::CNTRightCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-RightCommand::RightCommand(const RightCommand& source)
-	: Command(source) {
+CNTRightCommand::CNTRightCommand(const CNTRightCommand& source)
+	: CNTCommand(source) {
 }
 
-RightCommand::~RightCommand() {
+CNTRightCommand::~CNTRightCommand() {
 
 }
 
-RightCommand& RightCommand::operator=(const RightCommand& source) {
-	Command::operator=(source);
+CNTRightCommand& CNTRightCommand::operator=(const CNTRightCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void RightCommand::Execute() {
+void CNTRightCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		Long end = this->textEditingForm->selection->GetEnd();
 		this->textEditingForm->note->Move(end);
@@ -1917,34 +1917,34 @@ void RightCommand::Execute() {
 	}
 }
 
-string RightCommand::GetType() {
-	return "Right";
+string CNTRightCommand::GetType() {
+	return "CNTRight";
 }
 
-Command* RightCommand::Clone() {
-	return new RightCommand(*this);
+CNTCommand* CNTRightCommand::Clone() {
+	return new CNTRightCommand(*this);
 }
 
-//UpCommand
-UpCommand::UpCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTUpCommand
+CNTUpCommand::CNTUpCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-UpCommand::UpCommand(const UpCommand& source)
-	: Command(source) {
+CNTUpCommand::CNTUpCommand(const CNTUpCommand& source)
+	: CNTCommand(source) {
 }
 
-UpCommand::~UpCommand() {
+CNTUpCommand::~CNTUpCommand() {
 
 }
 
-UpCommand& UpCommand::operator=(const UpCommand& source) {
-	Command::operator=(source);
+CNTUpCommand& CNTUpCommand::operator=(const CNTUpCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void UpCommand::Execute() {
+void CNTUpCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -1959,34 +1959,34 @@ void UpCommand::Execute() {
 	}
 }
 
-string UpCommand::GetType() {
-	return "Up";
+string CNTUpCommand::GetType() {
+	return "CNTUp";
 }
 
-Command* UpCommand::Clone() {
-	return new UpCommand(*this);
+CNTCommand* CNTUpCommand::Clone() {
+	return new CNTUpCommand(*this);
 }
 
-//DownCommand
-DownCommand::DownCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTDownCommand
+CNTDownCommand::CNTDownCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-DownCommand::DownCommand(const DownCommand& source)
-	: Command(source) {
+CNTDownCommand::CNTDownCommand(const CNTDownCommand& source)
+	: CNTCommand(source) {
 }
 
-DownCommand::~DownCommand() {
+CNTDownCommand::~CNTDownCommand() {
 
 }
 
-DownCommand& DownCommand::operator=(const DownCommand& source) {
-	Command::operator=(source);
+CNTDownCommand& CNTDownCommand::operator=(const CNTDownCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void DownCommand::Execute() {
+void CNTDownCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2001,34 +2001,34 @@ void DownCommand::Execute() {
 	}
 }
 
-string DownCommand::GetType() {
-	return "Down";
+string CNTDownCommand::GetType() {
+	return "CNTDown";
 }
 
-Command* DownCommand::Clone() {
-	return new DownCommand(*this);
+CNTCommand* CNTDownCommand::Clone() {
+	return new CNTDownCommand(*this);
 }
 
-//HomeCommand
-HomeCommand::HomeCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTHomeCommand
+CNTHomeCommand::CNTHomeCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-HomeCommand::HomeCommand(const HomeCommand& source)
-	: Command(source) {
+CNTHomeCommand::CNTHomeCommand(const CNTHomeCommand& source)
+	: CNTCommand(source) {
 }
 
-HomeCommand::~HomeCommand() {
+CNTHomeCommand::~CNTHomeCommand() {
 
 }
 
-HomeCommand& HomeCommand::operator=(const HomeCommand& source) {
-	Command::operator=(source);
+CNTHomeCommand& CNTHomeCommand::operator=(const CNTHomeCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void HomeCommand::Execute() {
+void CNTHomeCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2045,34 +2045,34 @@ void HomeCommand::Execute() {
 	}
 }
 
-string HomeCommand::GetType() {
-	return "Home";
+string CNTHomeCommand::GetType() {
+	return "CNTHome";
 }
 
-Command* HomeCommand::Clone() {
-	return new HomeCommand(*this);
+CNTCommand* CNTHomeCommand::Clone() {
+	return new CNTHomeCommand(*this);
 }
 
-//EndCommand
-EndCommand::EndCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTEndCommand
+CNTEndCommand::CNTEndCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-EndCommand::EndCommand(const EndCommand& source)
-	: Command(source) {
+CNTEndCommand::CNTEndCommand(const CNTEndCommand& source)
+	: CNTCommand(source) {
 }
 
-EndCommand::~EndCommand() {
+CNTEndCommand::~CNTEndCommand() {
 
 }
 
-EndCommand& EndCommand::operator=(const EndCommand& source) {
-	Command::operator=(source);
+CNTEndCommand& CNTEndCommand::operator=(const CNTEndCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void EndCommand::Execute() {
+void CNTEndCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2090,34 +2090,34 @@ void EndCommand::Execute() {
 	}
 }
 
-string EndCommand::GetType() {
-	return "End";
+string CNTEndCommand::GetType() {
+	return "CNTEnd";
 }
 
-Command* EndCommand::Clone() {
-	return new EndCommand(*this);
+CNTCommand* CNTEndCommand::Clone() {
+	return new CNTEndCommand(*this);
 }
 
-//CtrlLeftCommand
-CtrlLeftCommand::CtrlLeftCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTCtrlLeftCommand
+CNTCtrlLeftCommand::CNTCtrlLeftCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-CtrlLeftCommand::CtrlLeftCommand(const CtrlLeftCommand& source)
-	: Command(source) {
+CNTCtrlLeftCommand::CNTCtrlLeftCommand(const CNTCtrlLeftCommand& source)
+	: CNTCommand(source) {
 }
 
-CtrlLeftCommand::~CtrlLeftCommand() {
+CNTCtrlLeftCommand::~CNTCtrlLeftCommand() {
 
 }
 
-CtrlLeftCommand& CtrlLeftCommand::operator=(const CtrlLeftCommand& source) {
-	Command::operator=(source);
+CNTCtrlLeftCommand& CNTCtrlLeftCommand::operator=(const CNTCtrlLeftCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CtrlLeftCommand::Execute() {
+void CNTCtrlLeftCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2135,34 +2135,34 @@ void CtrlLeftCommand::Execute() {
 	}
 }
 
-string CtrlLeftCommand::GetType() {
-	return "CtrlLeft";
+string CNTCtrlLeftCommand::GetType() {
+	return "CNTCtrlLeft";
 }
 
-Command* CtrlLeftCommand::Clone() {
-	return new CtrlLeftCommand(*this);
+CNTCommand* CNTCtrlLeftCommand::Clone() {
+	return new CNTCtrlLeftCommand(*this);
 }
 
-//CtrlRightCommand
-CtrlRightCommand::CtrlRightCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTCtrlRightCommand
+CNTCtrlRightCommand::CNTCtrlRightCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-CtrlRightCommand::CtrlRightCommand(const CtrlRightCommand& source)
-	: Command(source) {
+CNTCtrlRightCommand::CNTCtrlRightCommand(const CNTCtrlRightCommand& source)
+	: CNTCommand(source) {
 }
 
-CtrlRightCommand::~CtrlRightCommand() {
+CNTCtrlRightCommand::~CNTCtrlRightCommand() {
 
 }
 
-CtrlRightCommand& CtrlRightCommand::operator=(const CtrlRightCommand& source) {
-	Command::operator=(source);
+CNTCtrlRightCommand& CNTCtrlRightCommand::operator=(const CNTCtrlRightCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CtrlRightCommand::Execute() {
+void CNTCtrlRightCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2180,34 +2180,34 @@ void CtrlRightCommand::Execute() {
 	}
 }
 
-string CtrlRightCommand::GetType() {
-	return "CtrlRight";
+string CNTCtrlRightCommand::GetType() {
+	return "CNTCtrlRight";
 }
 
-Command* CtrlRightCommand::Clone() {
-	return new CtrlRightCommand(*this);
+CNTCommand* CNTCtrlRightCommand::Clone() {
+	return new CNTCtrlRightCommand(*this);
 }
 
-//CtrlHomeCommand
-CtrlHomeCommand::CtrlHomeCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTCtrlHomeCommand
+CNTCtrlHomeCommand::CNTCtrlHomeCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-CtrlHomeCommand::CtrlHomeCommand(const CtrlHomeCommand& source)
-	: Command(source) {
+CNTCtrlHomeCommand::CNTCtrlHomeCommand(const CNTCtrlHomeCommand& source)
+	: CNTCommand(source) {
 }
 
-CtrlHomeCommand::~CtrlHomeCommand() {
+CNTCtrlHomeCommand::~CNTCtrlHomeCommand() {
 
 }
 
-CtrlHomeCommand& CtrlHomeCommand::operator=(const CtrlHomeCommand& source) {
-	Command::operator=(source);
+CNTCtrlHomeCommand& CNTCtrlHomeCommand::operator=(const CNTCtrlHomeCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CtrlHomeCommand::Execute() {
+void CNTCtrlHomeCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2218,34 +2218,34 @@ void CtrlHomeCommand::Execute() {
 	this->textEditingForm->current->First();
 }
 
-string CtrlHomeCommand::GetType() {
-	return "CtrlHome";
+string CNTCtrlHomeCommand::GetType() {
+	return "CNTCtrlHome";
 }
 
-Command* CtrlHomeCommand::Clone() {
-	return new CtrlHomeCommand(*this);
+CNTCommand* CNTCtrlHomeCommand::Clone() {
+	return new CNTCtrlHomeCommand(*this);
 }
 
-//CtrlEndCommand
-CtrlEndCommand::CtrlEndCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTCtrlEndCommand
+CNTCtrlEndCommand::CNTCtrlEndCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-CtrlEndCommand::CtrlEndCommand(const CtrlEndCommand& source)
-	: Command(source) {
+CNTCtrlEndCommand::CNTCtrlEndCommand(const CNTCtrlEndCommand& source)
+	: CNTCommand(source) {
 }
 
-CtrlEndCommand::~CtrlEndCommand() {
+CNTCtrlEndCommand::~CNTCtrlEndCommand() {
 
 }
 
-CtrlEndCommand& CtrlEndCommand::operator=(const CtrlEndCommand& source) {
-	Command::operator=(source);
+CNTCtrlEndCommand& CNTCtrlEndCommand::operator=(const CNTCtrlEndCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void CtrlEndCommand::Execute() {
+void CNTCtrlEndCommand::Execute() {
 	if (this->textEditingForm->selection != NULL) {
 		this->textEditingForm->note->UnselectAll();
 		delete this->textEditingForm->selection;
@@ -2256,34 +2256,34 @@ void CtrlEndCommand::Execute() {
 	this->textEditingForm->current->Last();
 }
 
-string CtrlEndCommand::GetType() {
-	return "CtrlEnd";
+string CNTCtrlEndCommand::GetType() {
+	return "CNTCtrlEnd";
 }
 
-Command* CtrlEndCommand::Clone() {
-	return new CtrlEndCommand(*this);
+CNTCommand* CNTCtrlEndCommand::Clone() {
+	return new CNTCtrlEndCommand(*this);
 }
 
-//PageUpCommand
-PageUpCommand::PageUpCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTPageUpCommand
+CNTPageUpCommand::CNTPageUpCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-PageUpCommand::PageUpCommand(const PageUpCommand& source)
-	: Command(source) {
+CNTPageUpCommand::CNTPageUpCommand(const CNTPageUpCommand& source)
+	: CNTCommand(source) {
 }
 
-PageUpCommand::~PageUpCommand() {
+CNTPageUpCommand::~CNTPageUpCommand() {
 
 }
 
-PageUpCommand& PageUpCommand::operator=(const PageUpCommand& source) {
-	Command::operator=(source);
+CNTPageUpCommand& CNTPageUpCommand::operator=(const CNTPageUpCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void PageUpCommand::Execute() {
+void CNTPageUpCommand::Execute() {
 	Long position = this->textEditingForm->scrollController->PageUp();
 	Long previous = this->textEditingForm->SetScrollPos(SB_VERT, position, TRUE);
 	position = this->textEditingForm->GetScrollPos(SB_VERT);
@@ -2305,34 +2305,34 @@ void PageUpCommand::Execute() {
 	this->textEditingForm->current->Move(column);
 }
 
-string PageUpCommand::GetType() {
-	return "PageUp";
+string CNTPageUpCommand::GetType() {
+	return "CNTPageUp";
 }
 
-Command* PageUpCommand::Clone() {
-	return new PageUpCommand(*this);
+CNTCommand* CNTPageUpCommand::Clone() {
+	return new CNTPageUpCommand(*this);
 }
 
-//PageDownCommand
-PageDownCommand::PageDownCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTPageDownCommand
+CNTPageDownCommand::CNTPageDownCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-PageDownCommand::PageDownCommand(const PageDownCommand& source)
-	: Command(source) {
+CNTPageDownCommand::CNTPageDownCommand(const CNTPageDownCommand& source)
+	: CNTCommand(source) {
 }
 
-PageDownCommand::~PageDownCommand() {
+CNTPageDownCommand::~CNTPageDownCommand() {
 
 }
 
-PageDownCommand& PageDownCommand::operator=(const PageDownCommand& source) {
-	Command::operator=(source);
+CNTPageDownCommand& CNTPageDownCommand::operator=(const CNTPageDownCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void PageDownCommand::Execute() {
+void CNTPageDownCommand::Execute() {
 	Long position = this->textEditingForm->scrollController->PageDown();
 	Long previous = this->textEditingForm->SetScrollPos(SB_VERT, position, TRUE);
 	this->textEditingForm->ScrollWindow(0, previous - position);
@@ -2349,36 +2349,36 @@ void PageDownCommand::Execute() {
 	this->textEditingForm->current->Move(column);
 }
 
-string PageDownCommand::GetType() {
-	return "PageDown";
+string CNTPageDownCommand::GetType() {
+	return "CNTPageDown";
 }
 
-Command* PageDownCommand::Clone() {
-	return new PageDownCommand(*this);
+CNTCommand* CNTPageDownCommand::Clone() {
+	return new CNTPageDownCommand(*this);
 }
 //////////////////// Move ////////////////////
 
 //////////////////// Select ////////////////////
-//ShiftLeftCommand
-ShiftLeftCommand::ShiftLeftCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftLeftCommand
+CNTShiftLeftCommand::CNTShiftLeftCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftLeftCommand::ShiftLeftCommand(const ShiftLeftCommand& source)
-	: Command(source) {
+CNTShiftLeftCommand::CNTShiftLeftCommand(const CNTShiftLeftCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftLeftCommand::~ShiftLeftCommand() {
+CNTShiftLeftCommand::~CNTShiftLeftCommand() {
 
 }
 
-ShiftLeftCommand& ShiftLeftCommand::operator=(const ShiftLeftCommand& source) {
-	Command::operator=(source);
+CNTShiftLeftCommand& CNTShiftLeftCommand::operator=(const CNTShiftLeftCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftLeftCommand::Execute() {
+void CNTShiftLeftCommand::Execute() {
 	Glyph* character;
 	Long column;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -2424,34 +2424,34 @@ void ShiftLeftCommand::Execute() {
 	}
 }
 
-string ShiftLeftCommand::GetType() {
-	return "ShiftLeft";
+string CNTShiftLeftCommand::GetType() {
+	return "CNTShiftLeft";
 }
 
-Command* ShiftLeftCommand::Clone() {
-	return new ShiftLeftCommand(*this);
+CNTCommand* CNTShiftLeftCommand::Clone() {
+	return new CNTShiftLeftCommand(*this);
 }
 
-//ShiftRightCommand
-ShiftRightCommand::ShiftRightCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftRightCommand
+CNTShiftRightCommand::CNTShiftRightCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftRightCommand::ShiftRightCommand(const ShiftRightCommand& source)
-	: Command(source) {
+CNTShiftRightCommand::CNTShiftRightCommand(const CNTShiftRightCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftRightCommand::~ShiftRightCommand() {
+CNTShiftRightCommand::~CNTShiftRightCommand() {
 
 }
 
-ShiftRightCommand& ShiftRightCommand::operator=(const ShiftRightCommand& source) {
-	Command::operator=(source);
+CNTShiftRightCommand& CNTShiftRightCommand::operator=(const CNTShiftRightCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftRightCommand::Execute() {
+void CNTShiftRightCommand::Execute() {
 	Glyph* character;
 	Long column;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -2497,34 +2497,34 @@ void ShiftRightCommand::Execute() {
 	}
 }
 
-string ShiftRightCommand::GetType() {
-	return "ShiftRight";
+string CNTShiftRightCommand::GetType() {
+	return "CNTShiftRight";
 }
 
-Command* ShiftRightCommand::Clone() {
-	return new ShiftRightCommand(*this);
+CNTCommand* CNTShiftRightCommand::Clone() {
+	return new CNTShiftRightCommand(*this);
 }
 
-//ShiftUpCommand
-ShiftUpCommand::ShiftUpCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftUpCommand
+CNTShiftUpCommand::CNTShiftUpCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftUpCommand::ShiftUpCommand(const ShiftUpCommand& source)
-	: Command(source) {
+CNTShiftUpCommand::CNTShiftUpCommand(const CNTShiftUpCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftUpCommand::~ShiftUpCommand() {
+CNTShiftUpCommand::~CNTShiftUpCommand() {
 
 }
 
-ShiftUpCommand& ShiftUpCommand::operator=(const ShiftUpCommand& source) {
-	Command::operator=(source);
+CNTShiftUpCommand& CNTShiftUpCommand::operator=(const CNTShiftUpCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftUpCommand::Execute() {
+void CNTShiftUpCommand::Execute() {
 	Glyph* character;
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -2575,34 +2575,34 @@ void ShiftUpCommand::Execute() {
 	}
 }
 
-string ShiftUpCommand::GetType() {
-	return "ShiftUp";
+string CNTShiftUpCommand::GetType() {
+	return "CNTShiftUp";
 }
 
-Command* ShiftUpCommand::Clone() {
-	return new ShiftUpCommand(*this);
+CNTCommand* CNTShiftUpCommand::Clone() {
+	return new CNTShiftUpCommand(*this);
 }
 
-//ShiftDownCommand
-ShiftDownCommand::ShiftDownCommand(TextEditingForm * textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftDownCommand
+CNTShiftDownCommand::CNTShiftDownCommand(TextEditingForm * textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftDownCommand::ShiftDownCommand(const ShiftDownCommand& source)
-	: Command(source) {
+CNTShiftDownCommand::CNTShiftDownCommand(const CNTShiftDownCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftDownCommand::~ShiftDownCommand() {
+CNTShiftDownCommand::~CNTShiftDownCommand() {
 
 }
 
-ShiftDownCommand& ShiftDownCommand::operator=(const ShiftDownCommand& source) {
-	Command::operator=(source);
+CNTShiftDownCommand& CNTShiftDownCommand::operator=(const CNTShiftDownCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftDownCommand::Execute() {
+void CNTShiftDownCommand::Execute() {
 	Glyph* character;
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -2653,34 +2653,34 @@ void ShiftDownCommand::Execute() {
 	}
 }
 
-string ShiftDownCommand::GetType() {
-	return "ShiftDown";
+string CNTShiftDownCommand::GetType() {
+	return "CNTShiftDown";
 }
 
-Command* ShiftDownCommand::Clone() {
-	return new ShiftDownCommand(*this);
+CNTCommand* CNTShiftDownCommand::Clone() {
+	return new CNTShiftDownCommand(*this);
 }
 
-//ShiftHomeCommand
-ShiftHomeCommand::ShiftHomeCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftHomeCommand
+CNTShiftHomeCommand::CNTShiftHomeCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftHomeCommand::ShiftHomeCommand(const ShiftHomeCommand& source)
-	: Command(source) {
+CNTShiftHomeCommand::CNTShiftHomeCommand(const CNTShiftHomeCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftHomeCommand::~ShiftHomeCommand() {
+CNTShiftHomeCommand::~CNTShiftHomeCommand() {
 
 }
 
-ShiftHomeCommand& ShiftHomeCommand::operator=(const ShiftHomeCommand& source) {
-	Command::operator=(source);
+CNTShiftHomeCommand& CNTShiftHomeCommand::operator=(const CNTShiftHomeCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftHomeCommand::Execute() {
+void CNTShiftHomeCommand::Execute() {
 	Glyph* character;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
 	Long row = noteCurrent;
@@ -2725,34 +2725,34 @@ void ShiftHomeCommand::Execute() {
 	}
 }
 
-string ShiftHomeCommand::GetType() {
-	return "ShiftHome";
+string CNTShiftHomeCommand::GetType() {
+	return "CNTShiftHome";
 }
 
-Command* ShiftHomeCommand::Clone() {
-	return new ShiftHomeCommand(*this);
+CNTCommand* CNTShiftHomeCommand::Clone() {
+	return new CNTShiftHomeCommand(*this);
 }
 
-//ShiftEndCommand
-ShiftEndCommand::ShiftEndCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftEndCommand
+CNTShiftEndCommand::CNTShiftEndCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftEndCommand::ShiftEndCommand(const ShiftEndCommand& source)
-	: Command(source) {
+CNTShiftEndCommand::CNTShiftEndCommand(const CNTShiftEndCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftEndCommand::~ShiftEndCommand() {
+CNTShiftEndCommand::~CNTShiftEndCommand() {
 
 }
 
-ShiftEndCommand& ShiftEndCommand::operator=(const ShiftEndCommand& source) {
-	Command::operator=(source);
+CNTShiftEndCommand& CNTShiftEndCommand::operator=(const CNTShiftEndCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftEndCommand::Execute() {
+void CNTShiftEndCommand::Execute() {
 	Glyph* character;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
@@ -2798,34 +2798,34 @@ void ShiftEndCommand::Execute() {
 	}
 }
 
-string ShiftEndCommand::GetType() {
-	return "ShiftEnd";
+string CNTShiftEndCommand::GetType() {
+	return "CNTShiftEnd";
 }
 
-Command* ShiftEndCommand::Clone() {
-	return new ShiftEndCommand(*this);
+CNTCommand* CNTShiftEndCommand::Clone() {
+	return new CNTShiftEndCommand(*this);
 }
 
-//ShiftCtrlLeftCommand
-ShiftCtrlLeftCommand::ShiftCtrlLeftCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftCtrlLeftCommand
+CNTShiftCtrlLeftCommand::CNTShiftCtrlLeftCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftCtrlLeftCommand::ShiftCtrlLeftCommand(const ShiftCtrlLeftCommand& source)
-	: Command(source) {
+CNTShiftCtrlLeftCommand::CNTShiftCtrlLeftCommand(const CNTShiftCtrlLeftCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftCtrlLeftCommand::~ShiftCtrlLeftCommand() {
+CNTShiftCtrlLeftCommand::~CNTShiftCtrlLeftCommand() {
 
 }
 
-ShiftCtrlLeftCommand& ShiftCtrlLeftCommand::operator=(const ShiftCtrlLeftCommand& source) {
-	Command::operator=(source);
+CNTShiftCtrlLeftCommand& CNTShiftCtrlLeftCommand::operator=(const CNTShiftCtrlLeftCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftCtrlLeftCommand::Execute() {
+void CNTShiftCtrlLeftCommand::Execute() {
 	Glyph* character;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
 	Long row = noteCurrent;
@@ -2891,34 +2891,34 @@ void ShiftCtrlLeftCommand::Execute() {
 	}
 }
 
-string ShiftCtrlLeftCommand::GetType() {
-	return "ShiftCtrlLeft";
+string CNTShiftCtrlLeftCommand::GetType() {
+	return "CNTShiftCtrlLeft";
 }
 
-Command* ShiftCtrlLeftCommand::Clone() {
-	return new ShiftCtrlLeftCommand(*this);
+CNTCommand* CNTShiftCtrlLeftCommand::Clone() {
+	return new CNTShiftCtrlLeftCommand(*this);
 }
 
-//ShiftCtrlRightCommand
-ShiftCtrlRightCommand::ShiftCtrlRightCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftCtrlRightCommand
+CNTShiftCtrlRightCommand::CNTShiftCtrlRightCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftCtrlRightCommand::ShiftCtrlRightCommand(const ShiftCtrlRightCommand& source)
-	: Command(source) {
+CNTShiftCtrlRightCommand::CNTShiftCtrlRightCommand(const CNTShiftCtrlRightCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftCtrlRightCommand::~ShiftCtrlRightCommand() {
+CNTShiftCtrlRightCommand::~CNTShiftCtrlRightCommand() {
 
 }
 
-ShiftCtrlRightCommand& ShiftCtrlRightCommand::operator=(const ShiftCtrlRightCommand& source) {
-	Command::operator=(source);
+CNTShiftCtrlRightCommand& CNTShiftCtrlRightCommand::operator=(const CNTShiftCtrlRightCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftCtrlRightCommand::Execute() {
+void CNTShiftCtrlRightCommand::Execute() {
 	Glyph* character;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
 	Long row = noteCurrent;
@@ -2983,34 +2983,34 @@ void ShiftCtrlRightCommand::Execute() {
 	}
 }
 
-string ShiftCtrlRightCommand::GetType() {
-	return "ShiftCtrlRight";
+string CNTShiftCtrlRightCommand::GetType() {
+	return "CNTShiftCtrlRight";
 }
 
-Command* ShiftCtrlRightCommand::Clone() {
-	return new ShiftCtrlRightCommand(*this);
+CNTCommand* CNTShiftCtrlRightCommand::Clone() {
+	return new CNTShiftCtrlRightCommand(*this);
 }
 
-//ShiftCtrlHomeCommand
-ShiftCtrlHomeCommand::ShiftCtrlHomeCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftCtrlHomeCommand
+CNTShiftCtrlHomeCommand::CNTShiftCtrlHomeCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftCtrlHomeCommand::ShiftCtrlHomeCommand(const ShiftCtrlHomeCommand& source)
-	: Command(source) {
+CNTShiftCtrlHomeCommand::CNTShiftCtrlHomeCommand(const CNTShiftCtrlHomeCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftCtrlHomeCommand::~ShiftCtrlHomeCommand() {
+CNTShiftCtrlHomeCommand::~CNTShiftCtrlHomeCommand() {
 
 }
 
-ShiftCtrlHomeCommand& ShiftCtrlHomeCommand::operator=(const ShiftCtrlHomeCommand& source) {
-	Command::operator=(source);
+CNTShiftCtrlHomeCommand& CNTShiftCtrlHomeCommand::operator=(const CNTShiftCtrlHomeCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftCtrlHomeCommand::Execute() {
+void CNTShiftCtrlHomeCommand::Execute() {
 	Glyph* character;
 	Glyph* line;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -3060,34 +3060,34 @@ void ShiftCtrlHomeCommand::Execute() {
 	}
 }
 
-string ShiftCtrlHomeCommand::GetType() {
-	return "ShiftCtrlHome";
+string CNTShiftCtrlHomeCommand::GetType() {
+	return "CNTShiftCtrlHome";
 }
 
-Command* ShiftCtrlHomeCommand::Clone() {
-	return new ShiftCtrlHomeCommand(*this);
+CNTCommand* CNTShiftCtrlHomeCommand::Clone() {
+	return new CNTShiftCtrlHomeCommand(*this);
 }
 
-//ShiftCtrlEndCommand
-ShiftCtrlEndCommand::ShiftCtrlEndCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTShiftCtrlEndCommand
+CNTShiftCtrlEndCommand::CNTShiftCtrlEndCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-ShiftCtrlEndCommand::ShiftCtrlEndCommand(const ShiftCtrlEndCommand& source)
-	: Command(source) {
+CNTShiftCtrlEndCommand::CNTShiftCtrlEndCommand(const CNTShiftCtrlEndCommand& source)
+	: CNTCommand(source) {
 }
 
-ShiftCtrlEndCommand::~ShiftCtrlEndCommand() {
+CNTShiftCtrlEndCommand::~CNTShiftCtrlEndCommand() {
 
 }
 
-ShiftCtrlEndCommand& ShiftCtrlEndCommand::operator=(const ShiftCtrlEndCommand& source) {
-	Command::operator=(source);
+CNTShiftCtrlEndCommand& CNTShiftCtrlEndCommand::operator=(const CNTShiftCtrlEndCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void ShiftCtrlEndCommand::Execute() {
+void CNTShiftCtrlEndCommand::Execute() {
 	Glyph* character;
 	Glyph* line;
 	Long noteCurrent = this->textEditingForm->note->GetCurrent();
@@ -3137,36 +3137,36 @@ void ShiftCtrlEndCommand::Execute() {
 	}
 }
 
-string ShiftCtrlEndCommand::GetType() {
-	return "ShiftCtrlEnd";
+string CNTShiftCtrlEndCommand::GetType() {
+	return "CNTShiftCtrlEnd";
 }
 
-Command* ShiftCtrlEndCommand::Clone() {
-	return new ShiftCtrlEndCommand(*this);
+CNTCommand* CNTShiftCtrlEndCommand::Clone() {
+	return new CNTShiftCtrlEndCommand(*this);
 }
 //////////////////// Select ////////////////////
 
 //////////////////// Flag ////////////////////
-//LockHScrollCommand
-LockHScrollCommand::LockHScrollCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTLockHScrollCommand
+CNTLockHScrollCommand::CNTLockHScrollCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-LockHScrollCommand::LockHScrollCommand(const LockHScrollCommand& source)
-	: Command(source) {
+CNTLockHScrollCommand::CNTLockHScrollCommand(const CNTLockHScrollCommand& source)
+	: CNTCommand(source) {
 }
 
-LockHScrollCommand::~LockHScrollCommand() {
+CNTLockHScrollCommand::~CNTLockHScrollCommand() {
 
 }
 
-LockHScrollCommand& LockHScrollCommand::operator=(const LockHScrollCommand& source) {
-	Command::operator=(source);
+CNTLockHScrollCommand& CNTLockHScrollCommand::operator=(const CNTLockHScrollCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void LockHScrollCommand::Execute() {
+void CNTLockHScrollCommand::Execute() {
 	CRect rect;
 	this->textEditingForm->GetClientRect(rect);
 	DummyManager dummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
@@ -3203,89 +3203,89 @@ void LockHScrollCommand::Execute() {
 	this->textEditingForm->current->First();
 }
 
-string LockHScrollCommand::GetType() {
-	return "LockHScroll";
+string CNTLockHScrollCommand::GetType() {
+	return "CNTLockHScroll";
 }
 
-Command* LockHScrollCommand::Clone() {
-	return new LockHScrollCommand(*this);
+CNTCommand* CNTLockHScrollCommand::Clone() {
+	return new CNTLockHScrollCommand(*this);
 }
 
-//UnlockHistoryBookCommand
-UnlockHistoryBookCommand::UnlockHistoryBookCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTUnlockHistoryBookCommand
+CNTUnlockHistoryBookCommand::CNTUnlockHistoryBookCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-UnlockHistoryBookCommand::UnlockHistoryBookCommand(const UnlockHistoryBookCommand& source)
-	: Command(source) {
+CNTUnlockHistoryBookCommand::CNTUnlockHistoryBookCommand(const CNTUnlockHistoryBookCommand& source)
+	: CNTCommand(source) {
 }
 
-UnlockHistoryBookCommand::~UnlockHistoryBookCommand() {
+CNTUnlockHistoryBookCommand::~CNTUnlockHistoryBookCommand() {
 
 }
 
-UnlockHistoryBookCommand& UnlockHistoryBookCommand::operator=(const UnlockHistoryBookCommand& source) {
-	Command::operator=(source);
+CNTUnlockHistoryBookCommand& CNTUnlockHistoryBookCommand::operator=(const CNTUnlockHistoryBookCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void UnlockHistoryBookCommand::Execute() {
-	BOOL isUnlockedHistoryBook = this->textEditingForm->GetIsUnlockedHistoryBook();
-	if (isUnlockedHistoryBook == FALSE) {
-		isUnlockedHistoryBook = TRUE;
+void CNTUnlockHistoryBookCommand::Execute() {
+	BOOL isCNTUnlockedHistoryBook = this->textEditingForm->GetIsUnlockedHistoryBook();
+	if (isCNTUnlockedHistoryBook == FALSE) {
+		isCNTUnlockedHistoryBook = TRUE;
 	}
 	else {
-		isUnlockedHistoryBook = FALSE;
+		isCNTUnlockedHistoryBook = FALSE;
 		this->textEditingForm->undoHistoryBook->Empty();
 		this->textEditingForm->redoHistoryBook->Empty();
 	}
-	this->textEditingForm->SetIsUnlockedHistoryBook(isUnlockedHistoryBook);
+	this->textEditingForm->SetIsUnlockedHistoryBook(isCNTUnlockedHistoryBook);
 }
 
-string UnlockHistoryBookCommand::GetType() {
-	return "UnlockHistoryBook";
+string CNTUnlockHistoryBookCommand::GetType() {
+	return "CNTUnlockHistoryBook";
 }
 
-Command* UnlockHistoryBookCommand::Clone() {
-	return new UnlockHistoryBookCommand(*this);
+CNTCommand* CNTUnlockHistoryBookCommand::Clone() {
+	return new CNTUnlockHistoryBookCommand(*this);
 }
 
-//UnlockFindReplaceDialogCommand
-UnlockFindReplaceDialogCommand::UnlockFindReplaceDialogCommand(TextEditingForm* textEditingForm)
-	: Command(textEditingForm) {
+//CNTUnlockFindReplaceDialogCommand
+CNTUnlockFindReplaceDialogCommand::CNTUnlockFindReplaceDialogCommand(TextEditingForm* textEditingForm)
+	: CNTCommand(textEditingForm) {
 }
 
-UnlockFindReplaceDialogCommand::UnlockFindReplaceDialogCommand(const UnlockFindReplaceDialogCommand& source)
-	: Command(source) {
+CNTUnlockFindReplaceDialogCommand::CNTUnlockFindReplaceDialogCommand(const CNTUnlockFindReplaceDialogCommand& source)
+	: CNTCommand(source) {
 }
 
-UnlockFindReplaceDialogCommand::~UnlockFindReplaceDialogCommand() {
+CNTUnlockFindReplaceDialogCommand::~CNTUnlockFindReplaceDialogCommand() {
 
 }
 
-UnlockFindReplaceDialogCommand& UnlockFindReplaceDialogCommand::operator=(const UnlockFindReplaceDialogCommand& source) {
-	Command::operator=(source);
+CNTUnlockFindReplaceDialogCommand& CNTUnlockFindReplaceDialogCommand::operator=(const CNTUnlockFindReplaceDialogCommand& source) {
+	CNTCommand::operator=(source);
 
 	return *this;
 }
 
-void UnlockFindReplaceDialogCommand::Execute() {
-	BOOL isUnlockedFindReplaceDialog = this->textEditingForm->GetIsUnlockedFindReplaceDialog();
-	if (isUnlockedFindReplaceDialog == FALSE) {
-		isUnlockedFindReplaceDialog = TRUE;
+void CNTUnlockFindReplaceDialogCommand::Execute() {
+	BOOL isCNTUnlockedFindReplaceDialog = this->textEditingForm->GetIsUnlockedFindReplaceDialog();
+	if (isCNTUnlockedFindReplaceDialog == FALSE) {
+		isCNTUnlockedFindReplaceDialog = TRUE;
 	}
 	else {
-		isUnlockedFindReplaceDialog = FALSE;
+		isCNTUnlockedFindReplaceDialog = FALSE;
 	}
-	this->textEditingForm->SetIsUnlockedFindReplaceDialog(isUnlockedFindReplaceDialog);
+	this->textEditingForm->SetIsUnlockedFindReplaceDialog(isCNTUnlockedFindReplaceDialog);
 }
 
-string UnlockFindReplaceDialogCommand::GetType() {
-	return "UnlockFindReplaceDialog";
+string CNTUnlockFindReplaceDialogCommand::GetType() {
+	return "CNTUnlockFindReplaceDialog";
 }
 
-Command* UnlockFindReplaceDialogCommand::Clone() {
-	return new UnlockFindReplaceDialogCommand(*this);
+CNTCommand* CNTUnlockFindReplaceDialogCommand::Clone() {
+	return new CNTUnlockFindReplaceDialogCommand(*this);
 }
 //////////////////// Flag ////////////////////

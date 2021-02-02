@@ -8,14 +8,14 @@
 #include "ScrollController.h"
 #include "Scroll.h"
 #include "Selection.h"
-#include "CommandFactory.h"
-#include "Commands.h"
+#include "CNTCommandFactory.h"
+#include "CNTCommands.h"
 #include "VScrollActionFactory.h"
 #include "VScrollActions.h"
 #include "HScrollActionFactory.h"
 #include "HScrollActions.h"
-#include "KeyActionFactory.h"
-#include "KeyActions.h"
+#include "CNTKeyActionFactory.h"
+#include "CNTKeyActions.h"
 #include "HistoryBook.h"
 #include "DummyManager.h"
 #include "FindReplaceDialog.h"
@@ -35,10 +35,10 @@ BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
 	ON_WM_KILLFOCUS()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
-	ON_COMMAND_RANGE(IDC_EDIT_WRITE, IDC_EDIT_REPLACE, OnEditCommandRange)
-	ON_COMMAND_RANGE(IDC_BASIC_WRITE, IDC_BASIC_DELETESELECTION, OnBasicCommandRange)
-	ON_COMMAND_RANGE(IDC_MOVE_LEFT, IDC_SELECTMOVE_CTRLEND, OnMoveCommandRange)
-	ON_COMMAND_RANGE(IDC_FLAG_LOCKHSCROLL, IDC_FLAG_UNLOCKFINDREPLACEDIALOG, OnFlagCommandRange)
+	ON_COMMAND_RANGE(IDCNT_EDIT_WRITE, IDCNT_EDIT_REPLACE, OnEditCommandRange)
+	ON_COMMAND_RANGE(IDCNT_BASIC_WRITE, IDCNT_BASIC_DELETESELECTION, OnBasicCommandRange)
+	ON_COMMAND_RANGE(IDCNT_MOVE_LEFT, IDCNT_SELECTMOVE_CTRLEND, OnMoveCommandRange)
+	ON_COMMAND_RANGE(IDCNT_FLAG_LOCKHSCROLL, IDCNT_FLAG_UNLOCKFINDREPLACEDIALOG, OnFlagCommandRange)
 	ON_WM_KEYDOWN()
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
@@ -126,10 +126,10 @@ void TextEditingForm::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {
 		this->currentCharacter = nChar;
 		if (this->selection != NULL) {
 			this->isDeleteSelectionByInput = TRUE;
-			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_DELETESELECTION, 0));
 			this->isDeleteSelectionByInput = FALSE;
 		}
-		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_WRITE, 0));
+		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_WRITE, 0));
 	}
 }
 
@@ -139,10 +139,10 @@ LRESULT TextEditingForm::OnImeComposition(WPARAM wParam, LPARAM lParam) {
 		this->currentBuffer[1] = (TCHAR)LOBYTE(LOWORD(wParam));
 		if (this->selection != NULL) {
 			this->isDeleteSelectionByInput = TRUE;
-			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
+			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_DELETESELECTION, 0));
 			this->isDeleteSelectionByInput = FALSE;
 		}
-		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_IMECOMPOSITION, 0));
+		this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_IMECOMPOSITION, 0));
 	}
 
 	return ::DefWindowProc(this->m_hWnd, WM_IME_COMPOSITION, wParam, lParam);
@@ -157,7 +157,7 @@ LRESULT TextEditingForm::OnImeChar(WPARAM wParam, LPARAM lParam) {
 		this->currentBuffer[0] = (TCHAR)wParam;
 	}
 
-	this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_IMECHAR, 0));
+	this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_EDIT_IMECHAR, 0));
 
 	this->isComposing = FALSE;
 
@@ -442,8 +442,8 @@ void TextEditingForm::OnMouseMove(UINT nFlag, CPoint point) {
 }
 
 void TextEditingForm::OnEditCommandRange(UINT uID) {
-	CommandFactory commandFactory(this);
-	Command* command = commandFactory.Make(uID);
+	CNTCommandFactory commandFactory(this);
+	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
 
@@ -461,21 +461,21 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 			//1.2.1. (매크로든아니든)실행취소이력으로 쓴다.
 			//1.3. 다시실행이력이 있으면 다시실행이력을 다 지운다.
 			//2. Undo면 실행취소했다고 기억해둔다.
-			if (type != "ImeComposition"
-				&& type != "Undo" && type != "Redo" && type != "Copy" && type != "Cut" && type != "SelectAll"
-				&& type != "Find" && type != "Replace") {
+			if (type != "CNTImeComposition"
+				&& type != "CNTUndo" && type != "CNTRedo" && type != "CNTCopy" && type != "CNTCut" && type != "CNTSelectAll"
+				&& type != "CNTFind" && type != "CNTReplace") {
 				//!!수정!! DeleteSelection과 함께 들어오는 Enter키의 경우 기존 Macro에 들어가야 마땅하다 !!수정!!
-				if ((type == "Write" && this->currentCharacter != VK_RETURN)
-					|| type == "ImeChar" || type == "Paste"
-					|| (type == "DeleteSelection" && this->isDeleteSelectionByInput == TRUE)) {
-					Command* history;
-					if (this->undoHistoryBook->GetLength() > 0 && this->undoHistoryBook->OpenAt()->GetType() == "Macro"
+				if ((type == "CNTWrite" && this->currentCharacter != VK_RETURN)
+					|| type == "CNTImeChar" || type == "CNTPaste"
+					|| (type == "CNTDeleteSelection" && this->isDeleteSelectionByInput == TRUE)) {
+					CNTCommand* history;
+					if (this->undoHistoryBook->GetLength() > 0 && this->undoHistoryBook->OpenAt()->GetType() == "CNTMacro"
 						&& (this->wasUndo == FALSE && this->wasMove == FALSE) || this->isAllReplacing == TRUE) {
 						history = this->undoHistoryBook->OpenAt();
 						history->Add(command->Clone());
 					}
 					else {
-						history = new MacroCommand(this);
+						history = new CNTMacroCommand(this);
 						history->Add(command->Clone());
 						this->undoHistoryBook->Write(history);
 						this->wasUndo = FALSE;
@@ -489,7 +489,7 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 					this->redoHistoryBook->Empty();
 				}
 			}
-			if (type == "Undo") {
+			if (type == "CNTUndo") {
 				this->wasUndo = TRUE;
 			}
 		}
@@ -512,8 +512,8 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 }
 
 void TextEditingForm::OnBasicCommandRange(UINT uID) {
-	CommandFactory commandFactory(this);
-	Command* command = commandFactory.Make(uID);
+	CNTCommandFactory commandFactory(this);
+	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
 
@@ -522,8 +522,8 @@ void TextEditingForm::OnBasicCommandRange(UINT uID) {
 }
 
 void TextEditingForm::OnMoveCommandRange(UINT uID) {
-	CommandFactory commandFactory(this);
-	Command* command = commandFactory.Make(uID);
+	CNTCommandFactory commandFactory(this);
+	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
 		this->wasMove = TRUE;
@@ -540,8 +540,8 @@ void TextEditingForm::OnMoveCommandRange(UINT uID) {
 }
 
 void TextEditingForm::OnFlagCommandRange(UINT uID) {
-	CommandFactory commandFactory(this);
-	Command* command = commandFactory.Make(uID);
+	CNTCommandFactory commandFactory(this);
+	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
 		delete command;
@@ -561,8 +561,8 @@ void TextEditingForm::OnFlagCommandRange(UINT uID) {
 }
 
 void TextEditingForm::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
-	KeyActionFactory keyActionFactory(this);
-	KeyAction* keyAction = keyActionFactory.Make(nChar);
+	CNTKeyActionFactory keyActionFactory(this);
+	CNTKeyAction* keyAction = keyActionFactory.Make(nChar);
 
 	if ((this->note->IsFirst() == true && nChar == VK_BACK)
 		|| (this->note->IsLast() == true && nChar == VK_DELETE)) {
@@ -646,7 +646,7 @@ LRESULT TextEditingForm::OnFindReplace(WPARAM wParam, LPARAM lParam) {
 			}
 		}
 		else if (this->findReplaceDialog->ReplaceAll()) {
-			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_MOVE_CTRLHOME, 0));
+			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_MOVE_CTRLHOME, 0));
 			isFindSuccess = this->findReplaceDialog->Find();
 			while (isFindSuccess == TRUE) {
 				this->findReplaceDialog->Replace();

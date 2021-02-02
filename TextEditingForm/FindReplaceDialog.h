@@ -1,13 +1,15 @@
 #ifndef _FINDREPLACEDIALOG_H
 #define _FINDREPLACEDIALOG_H
 
-#include <afxdlgs.h>
+#include "TextEditingForm.h"
 #include "resource.h"
 #include "String.h"
 
+#include <afxdlgs.h>
+
 class FindReplaceDialog : public CFindReplaceDialog {
 public:
-	enum { IDF = IDD_FINDDIALOG, IDR = IDD_REPLACEDIALOG };
+	enum { IDF = IDCNT_FINDDIALOG, IDR = IDCNT_REPLACEDIALOG };
 public:
 	FindReplaceDialog(BOOL findOnly = TRUE, string findWhat = "", CWnd* parent = NULL);
 	virtual BOOL OnInitDialog();
@@ -16,6 +18,8 @@ public:
 
 	BOOL Find();
 	void Replace();
+private:
+	TextEditingForm* textEditingForm;
 };
 
 #endif //_FINDREPLACEDIALOG_H
