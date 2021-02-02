@@ -12,6 +12,7 @@
 #include "HistoryBook.h"
 #include "FindReplaceDialog.h"
 #include "DummyManager.h"
+#include "DummyLine.h"
 
 #include <afxwin.h>
 
@@ -1651,12 +1652,19 @@ UndoCommand& UndoCommand::operator=(const UndoCommand& source) {
 
 void UndoCommand::Execute() {
 	if (this->textEditingForm->undoHistoryBook->GetLength() > 0) {
+		if (this->textEditingForm->selection != NULL) {
+			delete this->textEditingForm->selection;
+			this->textEditingForm->selection = NULL;
+			this->textEditingForm->note->UnselectAll();
+		}
+
 		Command* command = this->textEditingForm->undoHistoryBook->OpenAt();
 		command->Unexecute();
 
 		this->textEditingForm->redoHistoryBook->Write(command->Clone());
 		this->textEditingForm->undoHistoryBook->Erase();
 	}
+	
 }
 
 string UndoCommand::GetType() {
@@ -1839,6 +1847,9 @@ void LeftCommand::Execute() {
 			Long index = this->textEditingForm->note->Previous();
 			this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
 			this->textEditingForm->current->Last();
+			if (dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(index + 1))) {
+				this->textEditingForm->current->Previous();
+			}
 		}
 	}
 }
@@ -1899,6 +1910,9 @@ void RightCommand::Execute() {
 			Long index = this->textEditingForm->note->Next();
 			this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
 			this->textEditingForm->current->First();
+			if (dynamic_cast<DummyLine*>(this->textEditingForm->current)) {
+				this->textEditingForm->current->Next();
+			}
 		}
 	}
 }
@@ -2020,8 +2034,15 @@ void HomeCommand::Execute() {
 		delete this->textEditingForm->selection;
 		this->textEditingForm->selection = NULL;
 	}
-	this->textEditingForm->current->GetCurrent();
-	this->textEditingForm->current->First();
+	Long current = this->textEditingForm->current->GetCurrent();
+	Long index = this->textEditingForm->current->First();
+	Long row = this->textEditingForm->note->GetCurrent();
+	if (current == index
+		&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row))) {
+		row = this->textEditingForm->note->Previous();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		this->textEditingForm->current->First();
+	}
 }
 
 string HomeCommand::GetType() {
@@ -2057,8 +2078,16 @@ void EndCommand::Execute() {
 		delete this->textEditingForm->selection;
 		this->textEditingForm->selection = NULL;
 	}
-	this->textEditingForm->current->GetCurrent();
-	this->textEditingForm->current->Last();
+	Long current = this->textEditingForm->current->GetCurrent();
+	Long index = this->textEditingForm->current->Last();
+	Long row = this->textEditingForm->note->GetCurrent();
+	if (current == index
+		&& row + 1 < this->textEditingForm->note->GetLength()
+		&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row + 1))) {
+		row = this->textEditingForm->note->Next();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		this->textEditingForm->current->Last();
+	}
 }
 
 string EndCommand::GetType() {
@@ -2096,6 +2125,14 @@ void CtrlLeftCommand::Execute() {
 	}
 	Long index = this->textEditingForm->note->MovePreviousWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
+	while (index >= 0
+		&& (this->textEditingForm->current->GetCurrent() <= 0
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->current))
+		|| (this->textEditingForm->current->GetCurrent() >= this->textEditingForm->current->GetLength()
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(index + 1)))) {
+		index = this->textEditingForm->note->MovePreviousWord();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
+	}
 }
 
 string CtrlLeftCommand::GetType() {
@@ -2133,6 +2170,14 @@ void CtrlRightCommand::Execute() {
 	}
 	Long index = this->textEditingForm->note->MoveNextWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
+	while (index + 1 < this->textEditingForm->note->GetLength()
+		&& (this->textEditingForm->current->GetCurrent() >= this->textEditingForm->current->GetLength()
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(index + 1)))
+		|| (this->textEditingForm->current->GetCurrent() <= 0
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->current))) {
+		index = this->textEditingForm->note->MoveNextWord();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
+	}
 }
 
 string CtrlRightCommand::GetType() {
@@ -2348,6 +2393,11 @@ void ShiftLeftCommand::Execute() {
 		row = this->textEditingForm->note->Previous();
 		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
 		this->textEditingForm->current->Last();
+		if (dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row + 1))) {
+			column = this->textEditingForm->current->Previous();
+			character = this->textEditingForm->current->GetAt(column);
+			(!character->GetIsSelected()) ? (character->Select(true)) : (character->Select(false));
+		}
 	}
 
 	Long start = row;
@@ -2416,6 +2466,11 @@ void ShiftRightCommand::Execute() {
 		row = this->textEditingForm->note->Next();
 		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
 		this->textEditingForm->current->First();
+		if (dynamic_cast<DummyLine*>(this->textEditingForm->current)) {
+			column = this->textEditingForm->current->Next();
+			character = this->textEditingForm->current->GetAt(column - 1);
+			(!character->GetIsSelected()) ? (character->Select(true)) : (character->Select(false));
+		}
 	}
 
 	Long start = noteCurrent;
@@ -2631,6 +2686,14 @@ void ShiftHomeCommand::Execute() {
 	Long row = noteCurrent;
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
 	Long index = this->textEditingForm->current->First();
+	if (lineCurrent == index
+		&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row))) {
+		row = this->textEditingForm->note->Previous();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		index = this->textEditingForm->current->First();
+		lineCurrent = this->textEditingForm->current->GetLength();
+	}
+
 	Long i = lineCurrent;
 	while (i > index) {
 		character = this->textEditingForm->current->GetAt(i - 1);
@@ -2695,6 +2758,15 @@ void ShiftEndCommand::Execute() {
 	Long lineCurrent = this->textEditingForm->current->GetCurrent();
 	Long index = this->textEditingForm->current->Last();
 	Long row = this->textEditingForm->note->GetCurrent();
+	if (lineCurrent == index
+		&& row + 1 < this->textEditingForm->note->GetLength()
+		&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row + 1))) {
+		row = this->textEditingForm->note->Next();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		index = this->textEditingForm->current->Last();
+		lineCurrent = 0;
+	}
+
 	Long i = lineCurrent;
 	while (i < index) {
 		character = this->textEditingForm->current->GetAt(i);
@@ -2763,6 +2835,15 @@ void ShiftCtrlLeftCommand::Execute() {
 	row = this->textEditingForm->note->MovePreviousWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
 
+	while (row >= 0
+		&& (this->textEditingForm->current->GetCurrent() <= 0
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->current))
+		|| (this->textEditingForm->current->GetCurrent() >= this->textEditingForm->current->GetLength()
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row + 1)))) {
+		row = this->textEditingForm->note->MovePreviousWord();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+	}
+
 	Long lineNext = this->textEditingForm->current->GetCurrent();
 	Glyph* line;
 	Long column;
@@ -2774,7 +2855,7 @@ void ShiftCtrlLeftCommand::Execute() {
 		if (i <= row) {
 			column = lineNext;
 		}
-		j = 0;
+		j = line->GetLength();
 		if (i == noteCurrent) {
 			j = lineCurrent;
 		}
@@ -2846,6 +2927,14 @@ void ShiftCtrlRightCommand::Execute() {
 
 	row = this->textEditingForm->note->MoveNextWord();
 	this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+	while (row + 1 < this->textEditingForm->note->GetLength()
+		&& (this->textEditingForm->current->GetCurrent() >= this->textEditingForm->current->GetLength()
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->note->GetAt(row + 1)))
+		|| (this->textEditingForm->current->GetCurrent() <= 0
+			&& dynamic_cast<DummyLine*>(this->textEditingForm->current))) {
+		row = this->textEditingForm->note->MoveNextWord();
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+	}
 
 	Long lineNext = this->textEditingForm->current->GetCurrent();
 	Glyph* line;
@@ -3056,3 +3145,147 @@ Command* ShiftCtrlEndCommand::Clone() {
 	return new ShiftCtrlEndCommand(*this);
 }
 //////////////////// Select ////////////////////
+
+//////////////////// Flag ////////////////////
+//LockHScrollCommand
+LockHScrollCommand::LockHScrollCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+}
+
+LockHScrollCommand::LockHScrollCommand(const LockHScrollCommand& source)
+	: Command(source) {
+}
+
+LockHScrollCommand::~LockHScrollCommand() {
+
+}
+
+LockHScrollCommand& LockHScrollCommand::operator=(const LockHScrollCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void LockHScrollCommand::Execute() {
+	CRect rect;
+	this->textEditingForm->GetClientRect(rect);
+	DummyManager dummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+
+	Long i;
+	if (this->textEditingForm->GetIsLockedHScroll() == FALSE) {
+		this->textEditingForm->SetIsLockedHScroll(TRUE);
+		i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			i = dummyManager.Fold(i);
+			i++;
+		}
+	}
+	else {
+		this->textEditingForm->SetIsLockedHScroll(FALSE);
+		i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			dummyManager.Unfold(i);
+			i++;
+		}
+	}
+
+	if (this->textEditingForm->selection != NULL) {
+		delete this->textEditingForm->selection;
+		this->textEditingForm->selection = NULL;
+		this->textEditingForm->note->UnselectAll();
+	}
+
+	this->textEditingForm->undoHistoryBook->Empty();
+	this->textEditingForm->redoHistoryBook->Empty();
+
+	Long index = this->textEditingForm->note->First();
+	this->textEditingForm->current = this->textEditingForm->note->GetAt(index);
+	this->textEditingForm->current->First();
+}
+
+string LockHScrollCommand::GetType() {
+	return "LockHScroll";
+}
+
+Command* LockHScrollCommand::Clone() {
+	return new LockHScrollCommand(*this);
+}
+
+//UnlockHistoryBookCommand
+UnlockHistoryBookCommand::UnlockHistoryBookCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+}
+
+UnlockHistoryBookCommand::UnlockHistoryBookCommand(const UnlockHistoryBookCommand& source)
+	: Command(source) {
+}
+
+UnlockHistoryBookCommand::~UnlockHistoryBookCommand() {
+
+}
+
+UnlockHistoryBookCommand& UnlockHistoryBookCommand::operator=(const UnlockHistoryBookCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void UnlockHistoryBookCommand::Execute() {
+	BOOL isUnlockedHistoryBook = this->textEditingForm->GetIsUnlockedHistoryBook();
+	if (isUnlockedHistoryBook == FALSE) {
+		isUnlockedHistoryBook = TRUE;
+	}
+	else {
+		isUnlockedHistoryBook = FALSE;
+		this->textEditingForm->undoHistoryBook->Empty();
+		this->textEditingForm->redoHistoryBook->Empty();
+	}
+	this->textEditingForm->SetIsUnlockedHistoryBook(isUnlockedHistoryBook);
+}
+
+string UnlockHistoryBookCommand::GetType() {
+	return "UnlockHistoryBook";
+}
+
+Command* UnlockHistoryBookCommand::Clone() {
+	return new UnlockHistoryBookCommand(*this);
+}
+
+//UnlockFindReplaceDialogCommand
+UnlockFindReplaceDialogCommand::UnlockFindReplaceDialogCommand(TextEditingForm* textEditingForm)
+	: Command(textEditingForm) {
+}
+
+UnlockFindReplaceDialogCommand::UnlockFindReplaceDialogCommand(const UnlockFindReplaceDialogCommand& source)
+	: Command(source) {
+}
+
+UnlockFindReplaceDialogCommand::~UnlockFindReplaceDialogCommand() {
+
+}
+
+UnlockFindReplaceDialogCommand& UnlockFindReplaceDialogCommand::operator=(const UnlockFindReplaceDialogCommand& source) {
+	Command::operator=(source);
+
+	return *this;
+}
+
+void UnlockFindReplaceDialogCommand::Execute() {
+	BOOL isUnlockedFindReplaceDialog = this->textEditingForm->GetIsUnlockedFindReplaceDialog();
+	if (isUnlockedFindReplaceDialog == FALSE) {
+		isUnlockedFindReplaceDialog = TRUE;
+	}
+	else {
+		isUnlockedFindReplaceDialog = FALSE;
+	}
+	this->textEditingForm->SetIsUnlockedFindReplaceDialog(isUnlockedFindReplaceDialog);
+}
+
+string UnlockFindReplaceDialogCommand::GetType() {
+	return "UnlockFindReplaceDialog";
+}
+
+Command* UnlockFindReplaceDialogCommand::Clone() {
+	return new UnlockFindReplaceDialogCommand(*this);
+}
+//////////////////// Flag ////////////////////

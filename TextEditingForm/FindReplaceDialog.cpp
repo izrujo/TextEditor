@@ -36,14 +36,14 @@ BOOL FindReplaceDialog::Find() {
 
 	//========== 자동 개행 처리 1 ==========
 	DummyManager* dummyManager = 0;
-	Long start = textEditingForm->note->GetCurrent();
+	Long currentRow = textEditingForm->note->GetCurrent();
+	Long currentColumn = textEditingForm->current->GetCurrent();
+	Long start = currentRow;
 	Long end = textEditingForm->note->GetLength() - 1;
 	if (isSearchDown == FALSE) {
 		start = 0;
-		end = textEditingForm->note->GetCurrent();
+		end = currentRow;
 	}
-	Long currentRow = start;
-	Long currentColumn = textEditingForm->current->GetCurrent();
 	Long distance = 0;
 	if (textEditingForm->GetIsLockedHScroll() == TRUE) {
 		CRect rect;
@@ -69,8 +69,6 @@ BOOL FindReplaceDialog::Find() {
 		allContents.MakeLower();
 		myFindString.MakeLower();
 	}
-
-	
 
 	//String 에서의 캐럿위치 찾기
 	Long current = 0;
@@ -121,7 +119,7 @@ BOOL FindReplaceDialog::Find() {
 	}
 	Long selectStart=0;
 	Long startDistance=0;
-	Long index;
+	Long index = 0;
 	if (current != -1) {
 		if (textEditingForm->selection != NULL) {
 			delete textEditingForm->selection;
@@ -164,7 +162,6 @@ BOOL FindReplaceDialog::Find() {
 		}
 		isFindSuccess = true;
 		selectStart = textEditingForm->selection->GetStart(); //자동개행
-		startDistance = dummyManager->CountDistance(selectStart, index); //자동개행
 	}
 	else {
 		isFindSuccess = false;
@@ -172,6 +169,7 @@ BOOL FindReplaceDialog::Find() {
 
 	//========== 자동 개행 처리 2 ==========
 	if (dummyManager != NULL) {
+		startDistance = dummyManager->CountDistance(selectStart, index); //자동개행
 		currentRow = textEditingForm->note->GetCurrent();
 		currentColumn = textEditingForm->current->GetCurrent();
 		distance = dummyManager->CountDistance(currentRow, currentColumn);
@@ -188,7 +186,7 @@ BOOL FindReplaceDialog::Find() {
 
 		delete dummyManager;
 
-		if (textEditingForm->selection != NULL) {
+		if (textEditingForm->selection != NULL && isFindSuccess == true) {
 			delete textEditingForm->selection;
 			textEditingForm->selection = NULL;
 			textEditingForm->selection = new Selection(selectStart, currentRow);
@@ -208,7 +206,7 @@ void FindReplaceDialog::Replace() {
 	//선택된 글자들(찾은)을 지우다.
 	if (textEditingForm->selection != NULL) {
 		textEditingForm->SetIsDeleteSelectionByInput(TRUE);
-		textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETE, 0));
+		textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_EDIT_DELETESELECTION, 0));
 		textEditingForm->SetIsDeleteSelectionByInput(FALSE);
 
 		//지운 자리에 바꿀 내용을 적다.

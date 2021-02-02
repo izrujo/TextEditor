@@ -155,6 +155,17 @@ Command* CommandFactory::Make(int uID) {
 		command = new ShiftCtrlEndCommand(this->textEditingForm);
 	}
 	//////////////////// Select ////////////////////
+	//////////////////// Flag ////////////////////
+	else if (uID == IDC_FLAG_LOCKHSCROLL) {
+		command = new LockHScrollCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_FLAG_UNLOCKHISTORYBOOK) {
+	command = new UnlockHistoryBookCommand(this->textEditingForm);
+	}
+	else if (uID == IDC_FLAG_UNLOCKFINDREPLACEDIALOG) {
+	command = new UnlockFindReplaceDialogCommand(this->textEditingForm);
+	}
+	//////////////////// Flag ////////////////////
 
 	return command;
 }

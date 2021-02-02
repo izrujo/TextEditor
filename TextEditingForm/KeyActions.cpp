@@ -12,6 +12,9 @@
 #include "Scroll.h"
 #include "Selection.h"
 
+#include "DummyManager.h" //CtrlF1
+#include "HistoryBook.h" //CtrlF1
+
 #include "resource.h"
 
 #include <string>
@@ -780,17 +783,16 @@ CtrlHKeyAction& CtrlHKeyAction::operator =(const CtrlHKeyAction& source) {
 //CtrlF1KeyAction
 CtrlF1KeyAction::CtrlF1KeyAction(TextEditingForm* textEditingForm)
 	: KeyAction(textEditingForm) {
+
 }
 
 CtrlF1KeyAction::CtrlF1KeyAction(const CtrlF1KeyAction& source)
 	: KeyAction(source) {
+
 }
 
 CtrlF1KeyAction::~CtrlF1KeyAction() {
-}
 
-void CtrlF1KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
-	this->textEditingForm->SetIsLockedHScroll(TRUE);
 }
 
 CtrlF1KeyAction& CtrlF1KeyAction::operator =(const CtrlF1KeyAction& source) {
@@ -799,20 +801,23 @@ CtrlF1KeyAction& CtrlF1KeyAction::operator =(const CtrlF1KeyAction& source) {
 	return *this;
 }
 
+void CtrlF1KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_FLAG_LOCKHSCROLL, 0));;
+}
+
 //CtrlF2KeyAction
 CtrlF2KeyAction::CtrlF2KeyAction(TextEditingForm* textEditingForm)
 	: KeyAction(textEditingForm) {
+
 }
 
 CtrlF2KeyAction::CtrlF2KeyAction(const CtrlF2KeyAction& source)
 	: KeyAction(source) {
+
 }
 
 CtrlF2KeyAction::~CtrlF2KeyAction() {
-}
 
-void CtrlF2KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
-	this->textEditingForm->SetIsUnlockedHistoryBook(TRUE);
 }
 
 CtrlF2KeyAction& CtrlF2KeyAction::operator =(const CtrlF2KeyAction& source) {
@@ -821,24 +826,31 @@ CtrlF2KeyAction& CtrlF2KeyAction::operator =(const CtrlF2KeyAction& source) {
 	return *this;
 }
 
+void CtrlF2KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_FLAG_UNLOCKHISTORYBOOK, 0));
+}
+
 //CtrlF3KeyAction
 CtrlF3KeyAction::CtrlF3KeyAction(TextEditingForm* textEditingForm)
 	: KeyAction(textEditingForm) {
+
 }
 
 CtrlF3KeyAction::CtrlF3KeyAction(const CtrlF3KeyAction& source)
 	: KeyAction(source) {
+
 }
 
 CtrlF3KeyAction::~CtrlF3KeyAction() {
-}
 
-void CtrlF3KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
-	this->textEditingForm->SetIsUnlockedFindReplaceDialog(TRUE);
 }
 
 CtrlF3KeyAction& CtrlF3KeyAction::operator =(const CtrlF3KeyAction& source) {
 	KeyAction::operator =(source);
 
 	return *this;
+}
+
+void CtrlF3KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDC_FLAG_UNLOCKFINDREPLACEDIALOG, 0));
 }

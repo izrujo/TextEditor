@@ -319,7 +319,7 @@ public:
 	CtrlHKeyAction& operator =(const CtrlHKeyAction& source);
 };
 
-//임시
+//임시 - 자동개행 LockHScroll
 class CtrlF1KeyAction : public KeyAction {
 public:
 	CtrlF1KeyAction(TextEditingForm* textEditingForm = 0);
@@ -329,7 +329,7 @@ public:
 	CtrlF1KeyAction& operator =(const CtrlF1KeyAction& source);
 };
 
-//임시
+//임시 - 실행취소 UnlockHistoryBook
 class CtrlF2KeyAction : public KeyAction {
 public:
 	CtrlF2KeyAction(TextEditingForm* textEditingForm = 0);
@@ -339,7 +339,7 @@ public:
 	CtrlF2KeyAction& operator =(const CtrlF2KeyAction& source);
 };
 
-//임시
+//임시 - 찾기바꾸기 UnlockFindReplaceDialog
 class CtrlF3KeyAction : public KeyAction {
 public:
 	CtrlF3KeyAction(TextEditingForm* textEditingForm = 0);

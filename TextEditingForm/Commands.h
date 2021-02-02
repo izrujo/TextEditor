@@ -665,4 +665,45 @@ public:
 };
 //////////////////// Select ////////////////////
 
+//////////////////// Flag ////////////////////
+//LockHScrollCommand
+class LockHScrollCommand : public Command {
+public:
+	LockHScrollCommand(TextEditingForm* textEditingForm = 0);
+	LockHScrollCommand(const LockHScrollCommand& source);
+	virtual ~LockHScrollCommand();
+	LockHScrollCommand& operator=(const LockHScrollCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//UnlockHistoryBookCommand
+class UnlockHistoryBookCommand : public Command {
+public:
+	UnlockHistoryBookCommand(TextEditingForm* textEditingForm = 0);
+	UnlockHistoryBookCommand(const UnlockHistoryBookCommand& source);
+	virtual ~UnlockHistoryBookCommand();
+	UnlockHistoryBookCommand& operator=(const UnlockHistoryBookCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+
+//UnlockFindReplaceDialogCommand
+class UnlockFindReplaceDialogCommand : public Command {
+public:
+	UnlockFindReplaceDialogCommand(TextEditingForm* textEditingForm = 0);
+	UnlockFindReplaceDialogCommand(const UnlockFindReplaceDialogCommand& source);
+	virtual ~UnlockFindReplaceDialogCommand();
+	UnlockFindReplaceDialogCommand& operator=(const UnlockFindReplaceDialogCommand& source);
+
+	virtual void Execute();
+	virtual string GetType();
+	virtual Command* Clone();
+};
+//////////////////// Flag ////////////////////
+
 #endif //_COMMAND_H

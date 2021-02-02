@@ -108,7 +108,7 @@ void ScrollController::Update() {
 	style = ::GetWindowLong(this->textEditingForm->m_hWnd, GWL_STYLE);
 	// 
 
-	if (clientWidth < this->noteWidth) { // 클라이언트 영역이 더 작으면 스크롤 설정및 생성
+	if (clientWidth < this->noteWidth && this->textEditingForm->GetIsLockedHScroll() == FALSE) { // 클라이언트 영역이 더 작으면 스크롤 설정및 생성
 		style = style | WS_HSCROLL;
 		minimum = this->horizontalScroll->GetMinimum();
 		maximum = this->noteWidth;//

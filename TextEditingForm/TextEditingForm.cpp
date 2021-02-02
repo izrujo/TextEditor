@@ -38,11 +38,13 @@ BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
 	ON_COMMAND_RANGE(IDC_EDIT_WRITE, IDC_EDIT_REPLACE, OnEditCommandRange)
 	ON_COMMAND_RANGE(IDC_BASIC_WRITE, IDC_BASIC_DELETESELECTION, OnBasicCommandRange)
 	ON_COMMAND_RANGE(IDC_MOVE_LEFT, IDC_SELECTMOVE_CTRLEND, OnMoveCommandRange)
+	ON_COMMAND_RANGE(IDC_FLAG_LOCKHSCROLL, IDC_FLAG_UNLOCKFINDREPLACEDIALOG, OnFlagCommandRange)
 	ON_WM_KEYDOWN()
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
 	ON_WM_MOUSEWHEEL()
 	ON_WM_ERASEBKGND()
+	ON_REGISTERED_MESSAGE(WM_FINDREPLACE, OnFindReplace)
 END_MESSAGE_MAP()
 
 TextEditingForm::TextEditingForm() {
@@ -83,7 +85,7 @@ int TextEditingForm::OnCreate(LPCREATESTRUCT lpCreateStruct) {
 	this->font = new Font(this);
 
 	this->characterMetrics = new CharacterMetrics(this, this->font);
-
+	
 	this->undoHistoryBook = new HistoryBook(10);
 	this->redoHistoryBook = new HistoryBook(10);
 
@@ -462,6 +464,7 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 			if (type != "ImeComposition"
 				&& type != "Undo" && type != "Redo" && type != "Copy" && type != "Cut" && type != "SelectAll"
 				&& type != "Find" && type != "Replace") {
+				//!!수정!! DeleteSelection과 함께 들어오는 Enter키의 경우 기존 Macro에 들어가야 마땅하다 !!수정!!
 				if ((type == "Write" && this->currentCharacter != VK_RETURN)
 					|| type == "ImeChar" || type == "Paste"
 					|| (type == "DeleteSelection" && this->isDeleteSelectionByInput == TRUE)) {
@@ -528,17 +531,33 @@ void TextEditingForm::OnMoveCommandRange(UINT uID) {
 		delete command;
 	}
 
+	this->Notify();
+	this->Invalidate();
+
+	Long x = this->characterMetrics->GetX(this->current) + 1; // 
+	Long y = this->characterMetrics->GetY(this->note->GetCurrent() + 1); // 0베이스이므로 1더함
+	this->scrollController->SmartScrollToPoint(x, y);
+}
+
+void TextEditingForm::OnFlagCommandRange(UINT uID) {
+	CommandFactory commandFactory(this);
+	Command* command = commandFactory.Make(uID);
+	if (command != NULL) {
+		command->Execute();
+		delete command;
+	}
+
 	if (this->scrollController != NULL) {
 		delete this->scrollController;
 	}
 	this->scrollController = new ScrollController(this);
 
+	this->Notify();
+	this->Invalidate();
+
 	Long x = this->characterMetrics->GetX(this->current) + 1; // 
 	Long y = this->characterMetrics->GetY(this->note->GetCurrent() + 1); // 0베이스이므로 1더함
 	this->scrollController->SmartScrollToPoint(x, y);
-
-	this->Notify();
-	this->Invalidate();
 }
 
 void TextEditingForm::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
@@ -614,6 +633,7 @@ LRESULT TextEditingForm::OnFindReplace(WPARAM wParam, LPARAM lParam) {
 			if (isFindSuccess == FALSE) {
 				messageText.Format("\"%s\"을(를) 찾을 수 없습니다.", this->findReplaceDialog->GetFindString());
 				MessageBox((LPCTSTR)messageText, "메모장", MB_OK);
+				this->findReplaceDialog->SetFocus();
 			}
 		}
 		else if (this->findReplaceDialog->ReplaceCurrent()) {
@@ -622,6 +642,7 @@ LRESULT TextEditingForm::OnFindReplace(WPARAM wParam, LPARAM lParam) {
 			if (isFindSuccess == FALSE) {
 				messageText.Format("\"%s\"을(를) 찾을 수 없습니다.", this->findReplaceDialog->GetFindString());
 				MessageBox((LPCTSTR)messageText, "메모장", MB_OK);
+				this->findReplaceDialog->SetFocus();
 			}
 		}
 		else if (this->findReplaceDialog->ReplaceAll()) {

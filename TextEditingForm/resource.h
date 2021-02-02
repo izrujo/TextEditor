@@ -46,6 +46,10 @@
 #define IDC_SELECTMOVE_CTRLRIGHT        50208
 #define IDC_SELECTMOVE_CTRLHOME         50209
 #define IDC_SELECTMOVE_CTRLEND	        50210
+/////////////////////////////////////////////
+#define IDC_FLAG_LOCKHSCROLL			 50301
+#define IDC_FLAG_UNLOCKHISTORYBOOK		 50302
+#define IDC_FLAG_UNLOCKFINDREPLACEDIALOG 50303
 
 #define IDD_FINDDIALOG                  10030
 #define IDD_REPLACEDIALOG               10031
