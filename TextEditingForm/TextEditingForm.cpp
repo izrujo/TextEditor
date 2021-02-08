@@ -38,7 +38,7 @@ BEGIN_MESSAGE_MAP(TextEditingForm, CWnd)
 	ON_COMMAND_RANGE(IDCNT_EDIT_WRITE, IDCNT_EDIT_REPLACE, OnEditCommandRange)
 	ON_COMMAND_RANGE(IDCNT_BASIC_WRITE, IDCNT_BASIC_DELETESELECTION, OnBasicCommandRange)
 	ON_COMMAND_RANGE(IDCNT_MOVE_LEFT, IDCNT_SELECTMOVE_CTRLEND, OnMoveCommandRange)
-	ON_COMMAND_RANGE(IDCNT_FLAG_LOCKHSCROLL, IDCNT_FLAG_UNLOCKFINDREPLACEDIALOG, OnFlagCommandRange)
+	ON_COMMAND_RANGE(IDCNT_FLAG_LOCKHSCROLL, /*IDCNT_FLAG_UNLOCKFINDREPLACEDIALOG*/IDCNT_ETC_SIZE, OnFlagCommandRange)
 	ON_WM_KEYDOWN()
 	ON_WM_HSCROLL()
 	ON_WM_VSCROLL()
@@ -63,11 +63,14 @@ TextEditingForm::TextEditingForm() {
 	this->currentCharacter = '\0';
 	this->currentBuffer[0] = '\0';
 	this->currentBuffer[1] = '\0';
+	this->sizedWidth = 0;
+	this->isSized = TRUE;
+	this->previousWidth = 0;
+
 	this->isLockedHScroll = FALSE;
 	this->isUnlockedHistoryBook = FALSE;
 	this->isUnlockedFindReplaceDialog = FALSE;
 
-	this->previousWidth = 0;
 	this->wasUndo = FALSE;
 	this->wasMove = FALSE;
 	this->isAllReplacing = FALSE;
@@ -207,8 +210,23 @@ void TextEditingForm::OnPaint() {
 }
 
 void TextEditingForm::OnSize(UINT nType, int cx, int cy) {
-	if (this->isLockedHScroll == TRUE && this->previousWidth != cx) {
+	if (this->isLockedHScroll == TRUE && this->sizedWidth != cx) {
 		DummyManager dummyManager(this->note, this->characterMetrics, cx);
+
+		Long start;
+		Long startColumn;
+		Long end;
+		Long endColumn;
+		Long startDistance;
+		Long endDistance;
+		if (this->selection != NULL) {
+			start = this->selection->GetStart();
+			end = this->selection->GetEnd();
+			startColumn = this->note->GetSelectedStartColumn(start);
+			endColumn = this->note->GetSelectedEndColumn(end);
+			startDistance = dummyManager.CountDistance(start, startColumn);
+			endDistance = dummyManager.CountDistance(end, endColumn);
+		}
 
 		Long row = this->note->GetCurrent();
 		Long column = this->current->GetCurrent();
@@ -227,8 +245,17 @@ void TextEditingForm::OnSize(UINT nType, int cx, int cy) {
 		this->note->Move(row);
 		this->current = this->note->GetAt(row);
 		this->current->Move(column);
+
+		if (this->selection != NULL) {
+			delete this->selection;
+			dummyManager.CountIndex(startDistance, &start, &startColumn);
+			dummyManager.CountIndex(endDistance, &end, &endColumn);
+			this->selection = new Selection(start, end);
+		}
+
+		this->isSized = TRUE;
 	}
-	this->previousWidth = cx; //불필요한 개행처리를 막기 위함(사용자의 윈도우 크기 조정만 개행처리 하기 위함)
+	this->sizedWidth = cx; //불필요한 개행처리를 막기 위함(사용자의 윈도우 크기 조정만 개행처리 하기 위함)
 
 	if (this->scrollController == NULL) {
 		this->scrollController = new ScrollController(this);
@@ -445,11 +472,22 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 	CNTCommandFactory commandFactory(this);
 	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
+		string type = command->GetType();
+
+		//SizeCommand 추가
+		if ((type == "CNTWrite" || type == "CNTImeChar" || type == "CNTDelete"
+			|| type == "CNTDeleteSelection" || type == "CNTPaste")
+			&& (this->isSized == TRUE || this->undoHistoryBook->IsEmpty())) {
+			this->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_ETC_SIZE, 0));
+			this->previousWidth = this->sizedWidth;
+			this->isSized = FALSE;
+		}
+
 		command->Execute();
 
 		//========== 실행 취소 추가 ==========
 		if (this->isUnlockedHistoryBook == TRUE) {
-			string type = command->GetType();
+			CNTCommand* sizeCommand = this->undoHistoryBook->OpenAt();
 			//1. Undo아니고 Redo아니고 Find아니고 Replace아니고
 			//1.1. DeleteSelection이면
 			//1.1.1. 실행취소이력이있으면서가장최근이력이매크로이고 방금실행취소를안했으면서방금이동을안했거나 지금모두바꾸기중이면
@@ -469,21 +507,21 @@ void TextEditingForm::OnEditCommandRange(UINT uID) {
 					|| type == "CNTImeChar" || type == "CNTPaste"
 					|| (type == "CNTDeleteSelection" && this->isDeleteSelectionByInput == TRUE)) {
 					CNTCommand* history;
-					if (this->undoHistoryBook->GetLength() > 0 && this->undoHistoryBook->OpenAt()->GetType() == "CNTMacro"
+					if (sizeCommand->GetLength() > 0 && sizeCommand->OpenAt()->GetType() == "CNTMacro"
 						&& (this->wasUndo == FALSE && this->wasMove == FALSE) || this->isAllReplacing == TRUE) {
-						history = this->undoHistoryBook->OpenAt();
+						history = sizeCommand->OpenAt();
 						history->Add(command->Clone());
 					}
 					else {
 						history = new CNTMacroCommand(this);
 						history->Add(command->Clone());
-						this->undoHistoryBook->Write(history);
+						sizeCommand->Write(history);
 						this->wasUndo = FALSE;
 						this->wasMove = FALSE;
 					}
 				}
 				else {
-					this->undoHistoryBook->Write(command->Clone());
+					sizeCommand->Write(command->Clone());
 				}
 				if (this->redoHistoryBook->GetLength() > 0) {
 					this->redoHistoryBook->Empty();
@@ -544,6 +582,11 @@ void TextEditingForm::OnFlagCommandRange(UINT uID) {
 	CNTCommand* command = commandFactory.Make(uID);
 	if (command != NULL) {
 		command->Execute();
+		
+		if (command->GetType() == "CNTSize") {
+			this->undoHistoryBook->Write(command->Clone());
+		}
+
 		delete command;
 	}
 

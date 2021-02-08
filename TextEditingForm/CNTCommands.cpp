@@ -60,6 +60,34 @@ Long CNTCommand::GetLength() const {
 	return -1;
 }
 
+Long CNTCommand::Write(CNTCommand* command) {
+	return -1;
+}
+
+Long CNTCommand::Erase() {
+	return -1;
+}
+
+CNTCommand* CNTCommand::OpenAt() {
+	return 0;
+}
+
+void CNTCommand::Empty() {
+
+}
+
+bool CNTCommand::IsEmpty() {
+	return false;
+}
+
+Long CNTCommand::GetTop() const {
+	return -1;
+}
+
+Long CNTCommand::GetWidth() const {
+	return 0;
+}
+
 //////////////////// Composite ////////////////////
 //CNTMacroCommand
 CNTMacroCommand::CNTMacroCommand(TextEditingForm* textEditingForm, Long capacity)
@@ -166,6 +194,243 @@ string CNTMacroCommand::GetType() {
 
 CNTCommand* CNTMacroCommand::Clone() {
 	return new CNTMacroCommand(*this);
+}
+
+//CNTSizeCommand
+CNTSizeCommand::CNTSizeCommand(TextEditingForm* textEditingForm, Long capacity)
+	: CNTCommand(textEditingForm), commands(capacity) {
+	this->capacity = capacity;
+	this->length = 0;
+	this->top = 0;
+	this->width = 0;
+}
+
+CNTSizeCommand::CNTSizeCommand(const CNTSizeCommand& source)
+	: CNTCommand(source.textEditingForm), commands(source.capacity) {
+
+	Stack<CNTCommand*> tempForSource(source.commands);
+	Stack<CNTCommand*> temp(source.capacity);
+	Long i = 0;
+	while (i < source.length) {
+		temp.Push(tempForSource.Top()->Clone());
+		tempForSource.Pop();
+		i++;
+	}
+
+	i = 0;
+	while (i < source.length) {
+		this->commands.Push(temp.Top());
+		temp.Pop();
+		i++;
+	}
+
+	this->capacity = source.capacity;
+	this->length = source.length;
+	this->top = source.top;
+	this->width = source.width;
+}
+
+CNTSizeCommand::~CNTSizeCommand() {
+	Long i = 0;
+	while (i < this->length) {
+		if (this->commands.Top() != 0) {
+			delete this->commands.Top();
+			this->commands.Pop();
+		}
+		i++;
+	}
+}
+
+CNTSizeCommand& CNTSizeCommand::operator=(const CNTSizeCommand& source) {
+	CNTCommand::operator=(source);
+
+	Long i = 0;
+	while (i < this->length) {
+		if (this->commands.Top() != 0) {
+			delete this->commands.Top();
+			this->commands.Pop();
+		}
+		i++;
+	}
+
+	this->commands = source.commands;
+
+	Stack<CNTCommand*> temp(source.capacity);
+	i = 0;
+	while (i < source.length) {
+		temp.Push(this->commands.Top()->Clone());
+		this->commands.Pop();
+		i++;
+	}
+
+	i = 0;
+	while (i < source.length) {
+		this->commands.Push(temp.Top());
+		temp.Pop();
+		i++;
+	}
+
+	this->capacity = source.capacity;
+	this->length = source.length;
+	this->top = source.top;
+
+	this->width = source.width;
+
+	return *this;
+}
+
+void CNTSizeCommand::Execute() {
+	if (this->width == 0) {
+		this->width = this->textEditingForm->GetSizedWidth();
+	}
+
+	CRect rect;
+	this->textEditingForm->GetClientRect(rect);
+
+	if (this->width != rect.Width()) { // 최초 Execute 는 의미 없음. 어차피 현재 너비로 재배열하는 것임.
+		DummyManager dummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+
+		Long start;
+		Long startColumn;
+		Long end;
+		Long endColumn;
+		Long startDistance;
+		Long endDistance;
+		if (this->textEditingForm->selection != NULL) {
+			start = this->textEditingForm->selection->GetStart();
+			end = this->textEditingForm->selection->GetEnd();
+			startColumn = this->textEditingForm->note->GetSelectedStartColumn(start);
+			endColumn = this->textEditingForm->note->GetSelectedEndColumn(end);
+			startDistance = dummyManager.CountDistance(start, startColumn);
+			endDistance = dummyManager.CountDistance(end, endColumn);
+		}
+
+		Long row = this->textEditingForm->note->GetCurrent();
+		Long column = this->textEditingForm->current->GetCurrent();
+		Long distance = dummyManager.CountDistance(row, column);
+		Long i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			dummyManager.Unfold(i);
+			i++;
+		}
+		i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			i = dummyManager.Fold(i);
+			i++;
+		}
+		dummyManager.CountIndex(distance, &row, &column);
+		this->textEditingForm->note->Move(row);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		this->textEditingForm->current->Move(column);
+
+		if (this->textEditingForm->selection != NULL) {
+			delete this->textEditingForm->selection;
+			dummyManager.CountIndex(startDistance, &start, &startColumn);
+			dummyManager.CountIndex(endDistance, &end, &endColumn);
+			this->textEditingForm->selection = new Selection(start, end);
+		}
+	}
+}
+
+void CNTSizeCommand::Unexecute() {
+	CRect rect;
+	this->textEditingForm->GetClientRect(rect);
+
+	if (this->width != rect.Width()) {
+		DummyManager dummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, this->width);
+
+		Long start;
+		Long startColumn;
+		Long end;
+		Long endColumn;
+		Long startDistance;
+		Long endDistance;
+		if (this->textEditingForm->selection != NULL) {
+			start = this->textEditingForm->selection->GetStart();
+			end = this->textEditingForm->selection->GetEnd();
+			startColumn = this->textEditingForm->note->GetSelectedStartColumn(start);
+			endColumn = this->textEditingForm->note->GetSelectedEndColumn(end);
+			startDistance = dummyManager.CountDistance(start, startColumn);
+			endDistance = dummyManager.CountDistance(end, endColumn);
+		}
+
+		Long row = this->textEditingForm->note->GetCurrent();
+		Long column = this->textEditingForm->current->GetCurrent();
+		Long distance = dummyManager.CountDistance(row, column);
+		Long i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			dummyManager.Unfold(i);
+			i++;
+		}
+		i = 0;
+		while (i < this->textEditingForm->note->GetLength()) {
+			i = dummyManager.Fold(i);
+			i++;
+		}
+		dummyManager.CountIndex(distance, &row, &column);
+		this->textEditingForm->note->Move(row);
+		this->textEditingForm->current = this->textEditingForm->note->GetAt(row);
+		this->textEditingForm->current->Move(column);
+
+		if (this->textEditingForm->selection != NULL) {
+			delete this->textEditingForm->selection;
+			dummyManager.CountIndex(startDistance, &start, &startColumn);
+			dummyManager.CountIndex(endDistance, &end, &endColumn);
+			this->textEditingForm->selection = new Selection(start, end);
+		}
+	}
+	this->textEditingForm->SetPreviousWidth(this->width);
+}
+
+Long CNTSizeCommand::Write(CNTCommand* command) {
+	this->top = this->commands.Push(command);
+	if (this->length >= this->capacity) {
+		this->capacity++;
+	}
+	this->length++;
+
+	return this->top;
+}
+
+Long CNTSizeCommand::Erase() {
+	if (this->commands.Top() != 0) {
+		delete this->commands.Top();
+	}
+
+	this->commands.Pop();
+	this->length--;
+	this->top--;
+
+	return -1;
+}
+
+CNTCommand* CNTSizeCommand::OpenAt() {
+	return this->commands.Top();
+}
+
+void CNTSizeCommand::Empty() {
+	Long i = 0;
+	while (i < this->length) {
+		if (this->commands.Top() != 0) {
+			delete this->commands.Top();
+			this->commands.Pop();
+		}
+		i++;
+	}
+	this->length = 0;
+	this->top = 0;
+}
+
+bool CNTSizeCommand::IsEmpty() {
+	return this->commands.IsEmpty();
+}
+
+string CNTSizeCommand::GetType() {
+	return "CNTSize";
+}
+
+CNTCommand* CNTSizeCommand::Clone() {
+	return new CNTSizeCommand(*this);
 }
 //////////////////// Composite ////////////////////
 
@@ -410,6 +675,7 @@ void CNTCopyBasicCommand::Execute() {
 		Long end = this->textEditingForm->selection->GetEnd();
 		CString clipBoard;
 		string content;
+		string characterContent;
 		Glyph* line;
 		Glyph* character;
 		Long column = 0;
@@ -423,7 +689,11 @@ void CNTCopyBasicCommand::Execute() {
 				character = line->GetAt(j);
 				if (character->GetIsSelected()) {
 					column = j + 1;
-					content += character->GetContent();
+					characterContent = character->GetContent();
+					if (characterContent == "        ") {
+						characterContent = '\t';
+					}
+					content += characterContent;
 				}
 				j++;
 			}
@@ -572,9 +842,8 @@ void CNTWriteCommand::Execute() {
 	DummyManager* dummyManager = 0;
 	Long distance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		distance = dummyManager->CountDistance(this->row, this->column);
 		this->row = dummyManager->Unfold(this->row);
 		dummyManager->CountIndex(distance, &this->row, &this->column);
@@ -611,9 +880,8 @@ void CNTWriteCommand::Unexecute() {
 	DummyManager* dummyManager = 0;
 	Long distance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		Long unfoldedRow = dummyManager->Unfold(this->row);
 		if (this->nChar == VK_RETURN) {
 			dummyManager->Unfold(unfoldedRow + 1);
@@ -797,9 +1065,8 @@ void CNTImeCharCommand::Execute() {
 	DummyManager* dummyManager = 0;
 	Long distance = 0;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		distance = dummyManager->CountDistance(this->row, this->column);
 		this->row = dummyManager->Unfold(this->row);
 		dummyManager->CountIndex(distance, &this->row, &this->column);
@@ -839,9 +1106,8 @@ void CNTImeCharCommand::Unexecute() {
 	DummyManager* dummyManager = 0;
 	Long distance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		dummyManager->Unfold(this->row);
 	}
 	//========== 자동 개행 처리 1 ==========
@@ -940,9 +1206,8 @@ void CNTDeleteCommand::Execute() {
 	DummyManager* dummyManager = 0;
 	Long distance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		distance = dummyManager->CountDistance(this->row, this->column);
 		this->row = dummyManager->Unfold(this->row);
 		dummyManager->CountIndex(distance, &this->row, &this->column);
@@ -984,9 +1249,8 @@ void CNTDeleteCommand::Unexecute() {
 	DummyManager* dummyManager = 0;
 	Long distance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		dummyManager->Unfold(this->row);
 	}
 	//========== 자동 개행 처리 1 ==========
@@ -1156,37 +1420,10 @@ void CNTDeleteSelectionCommand::Execute() {
 	if (this->startRow == -1 && this->startColumn == -1 && this->endRow == -1 && this->endColumn == -1 && this->selecteds == "") {
 		this->startRow = this->textEditingForm->selection->GetStart();
 		this->endRow = this->textEditingForm->selection->GetEnd();
-		Glyph* character;
-		Glyph* line;
 
-		bool isSelected = false;
-		line = this->textEditingForm->note->GetAt(this->startRow); //시작 행
-		Long i = 0;
-		while (i < line->GetLength() && isSelected == false) { //시작 행의 개수만큼 그리고 현재 글자가 선택되어있지 않은 동안 반복하다.
-			character = line->GetAt(i); //시작 행에서 글자를 가져오다.
-			isSelected = character->GetIsSelected(); //현재 글자의 선택여부를 확인하다.
-			i++;
-		}
-		this->startColumn = i - 1;
-		if (isSelected == false) {
-			this->startColumn++;
-		}
+		this->startColumn = this->textEditingForm->note->GetSelectedStartColumn(this->startRow);
+		this->endColumn = this->textEditingForm->note->GetSelectedEndColumn(this->endRow);
 
-		isSelected = true;
-		line = this->textEditingForm->note->GetAt(this->endRow); //끝 행
-		i = 0;
-		if (this->startRow == this->endRow) {
-			i = this->startColumn;
-		}
-		while (i < line->GetLength() && isSelected == true) { //끝 행의 개수만큼 그리고 현재 글자가 선택되어있는 동안 반복하다.
-			character = line->GetAt(i); //끝 행에서 글자를 가져오다.
-			isSelected = character->GetIsSelected(); //현재 글자의 선택여부를 확인하다.
-			i++;
-		}
-		this->endColumn = i - 1;
-		if (isSelected == true) {
-			this->endColumn++;
-		}
 		this->selecteds = this->textEditingForm->note->GetContent(this->startRow, this->startColumn, this->endRow, this->endColumn);
 	}
 
@@ -1195,9 +1432,8 @@ void CNTDeleteSelectionCommand::Execute() {
 	Long startDistance;
 	Long endDistance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		startDistance = dummyManager->CountDistance(this->startRow, this->startColumn);
 		endDistance = dummyManager->CountDistance(this->endRow, this->endColumn);
 		dummyManager->Unfold(&this->startRow, &this->endRow);
@@ -1238,9 +1474,8 @@ void CNTDeleteSelectionCommand::Unexecute() {
 	//========== 자동 개행 처리 1 ==========
 	DummyManager* dummyManager = 0;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		dummyManager->Unfold(this->startRow);
 	}
 	//========== 자동 개행 처리 1 ==========
@@ -1419,9 +1654,8 @@ void CNTPasteCommand::Execute() {
 	DummyManager* dummyManager = 0;
 	Long distance = 0;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		distance = dummyManager->CountDistance(this->startRow, this->startColumn);
 		this->startRow = dummyManager->Unfold(this->startRow);
 		dummyManager->CountIndex(distance, &this->startRow, &this->startColumn);
@@ -1510,9 +1744,8 @@ void CNTPasteCommand::Unexecute() {
 	Long startDistance;
 	Long endDistance;
 	if (this->textEditingForm->GetIsLockedHScroll() == TRUE) {
-		CRect rect;
-		this->textEditingForm->GetClientRect(rect);
-		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, rect.Width());
+		Long width = this->textEditingForm->GetPreviousWidth();
+		dummyManager = new DummyManager(this->textEditingForm->note, this->textEditingForm->characterMetrics, width);
 		startDistance = dummyManager->CountDistance(this->startRow, this->startColumn);
 		endDistance = dummyManager->CountDistance(this->endRow, this->endColumn); //접은 상태
 		dummyManager->Unfold(&this->startRow, &this->endRow); //편 상태
@@ -1651,18 +1884,36 @@ CNTUndoCommand& CNTUndoCommand::operator=(const CNTUndoCommand& source) {
 }
 
 void CNTUndoCommand::Execute() {
-	if (this->textEditingForm->undoHistoryBook->GetLength() > 0) {
+	if (this->textEditingForm->GetIsUnlockedHistoryBook() && !this->textEditingForm->undoHistoryBook->IsEmpty()) {
 		if (this->textEditingForm->selection != NULL) {
 			delete this->textEditingForm->selection;
 			this->textEditingForm->selection = NULL;
 			this->textEditingForm->note->UnselectAll();
 		}
 
-		CNTCommand* command = this->textEditingForm->undoHistoryBook->OpenAt();
+		CNTCommand* undoSizeCommand = this->textEditingForm->undoHistoryBook->OpenAt();
+		undoSizeCommand->Unexecute();
+
+		CNTCommand* command = undoSizeCommand->OpenAt();
 		command->Unexecute();
 
-		this->textEditingForm->redoHistoryBook->Write(command->Clone());
-		this->textEditingForm->undoHistoryBook->Erase();
+		undoSizeCommand->Execute();
+
+		CNTCommand* redoSizeCommand = this->textEditingForm->redoHistoryBook->OpenAt();
+		if (!this->textEditingForm->redoHistoryBook->IsEmpty() && undoSizeCommand->GetWidth() == redoSizeCommand->GetWidth()) {
+			redoSizeCommand->Write(command->Clone());
+		}
+		else {
+			CNTCommand* newRedoSizeCommand = undoSizeCommand->Clone();
+			newRedoSizeCommand->Empty();
+			newRedoSizeCommand->Write(command->Clone());
+			this->textEditingForm->redoHistoryBook->Write(newRedoSizeCommand);
+		}
+
+		undoSizeCommand->Erase();
+		if (undoSizeCommand->IsEmpty()) {
+			this->textEditingForm->undoHistoryBook->Erase();
+		}
 	}
 	
 }
@@ -1695,17 +1946,30 @@ CNTRedoCommand& CNTRedoCommand::operator=(const CNTRedoCommand& source) {
 }
 
 void CNTRedoCommand::Execute() {
-	if (this->textEditingForm->redoHistoryBook->GetLength() > 0) {
-		CNTCommand* command = this->textEditingForm->redoHistoryBook->OpenAt();
+	if (this->textEditingForm->GetIsUnlockedHistoryBook() && !this->textEditingForm->redoHistoryBook->IsEmpty()) {
+		CNTCommand* redoSizeCommand = this->textEditingForm->redoHistoryBook->OpenAt();
+		redoSizeCommand->Unexecute();
+
+		CNTCommand* command = redoSizeCommand->OpenAt();
 		command->Execute();
 
-		this->textEditingForm->undoHistoryBook->Write(command->Clone());
-		this->textEditingForm->redoHistoryBook->Erase();
-	}
-	if (this->textEditingForm->selection != NULL) {
-		delete this->textEditingForm->selection;
-		this->textEditingForm->selection = NULL;
-		this->textEditingForm->note->UnselectAll();
+		redoSizeCommand->Execute();
+
+		CNTCommand* undoSizeCommand = this->textEditingForm->undoHistoryBook->OpenAt();
+		if (!this->textEditingForm->undoHistoryBook->IsEmpty() && redoSizeCommand->GetWidth() == undoSizeCommand->GetWidth()) {
+			undoSizeCommand->Write(command->Clone());
+		}
+		else {
+			CNTCommand* newUndoSizeCommand = redoSizeCommand->Clone();
+			newUndoSizeCommand->Empty();
+			newUndoSizeCommand->Write(command->Clone());
+			this->textEditingForm->undoHistoryBook->Write(newUndoSizeCommand);
+		}
+
+		redoSizeCommand->Erase();
+		if (redoSizeCommand->IsEmpty()) {
+			this->textEditingForm->redoHistoryBook->Erase();
+		}
 	}
 }
 
