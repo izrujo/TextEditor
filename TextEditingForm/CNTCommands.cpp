@@ -517,8 +517,9 @@ CNTImeCompositionBasicCommand& CNTImeCompositionBasicCommand::operator=(const CN
 }
 
 void CNTImeCompositionBasicCommand::Execute() {
-	TCHAR(*buffer) = new TCHAR[2];
-	buffer = this->textEditingForm->GetCurrentBuffer();
+	TCHAR buffer[2];
+	buffer[0] = this->textEditingForm->GetCurrentBuffer()[0];
+	buffer[1] = this->textEditingForm->GetCurrentBuffer()[1];
 
 	Long index;
 
@@ -955,9 +956,6 @@ CNTImeCompositionCommand& CNTImeCompositionCommand::operator=(const CNTImeCompos
 }
 
 void CNTImeCompositionCommand::Execute() {
-	TCHAR(*buffer) = new TCHAR[2];
-	buffer = this->textEditingForm->GetCurrentBuffer();
-
 	Long row = this->textEditingForm->note->GetCurrent();
 	Long column = this->textEditingForm->current->GetCurrent();
 	//========== 자동 개행 처리 1 ==========

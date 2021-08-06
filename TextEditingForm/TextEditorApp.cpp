@@ -1,3 +1,4 @@
+#include <vld.h>
 #include "TextEditorApp.h"
 #include "TextEditingForm.h"
 

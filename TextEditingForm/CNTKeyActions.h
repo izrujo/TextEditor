@@ -349,4 +349,14 @@ public:
 	CNTCtrlF3KeyAction& operator =(const CNTCtrlF3KeyAction& source);
 };
 
+//юс╫ц CtrlW
+class CNTCtrlWKeyAction : public CNTKeyAction {
+public:
+	CNTCtrlWKeyAction(TextEditingForm* textEditingForm = 0);
+	CNTCtrlWKeyAction(const CNTCtrlWKeyAction& source);
+	virtual ~CNTCtrlWKeyAction();
+	virtual void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	CNTCtrlWKeyAction& operator =(const CNTCtrlWKeyAction& source);
+};
+
 #endif //_CNTKEYACTIONS_H

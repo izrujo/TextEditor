@@ -101,12 +101,16 @@ int TextEditingForm::OnCreate(LPCREATESTRUCT lpCreateStruct) {
 }
 
 void TextEditingForm::OnClose() {
+	this->DestroyWindow();
 	if (this->note != NULL) {
 		delete this->note;
 		this->note = NULL; // OnClose ÀÌÈÄ OnSize È£ÃâµÊ.
 	}
 	if (this->characterMetrics != NULL) {
 		delete this->characterMetrics;
+	}
+	if (this->font != NULL) {
+		delete this->font;
 	}
 	if (this->selection != NULL) {
 		delete this->selection;
@@ -120,8 +124,7 @@ void TextEditingForm::OnClose() {
 	if (this->findReplaceDialog != NULL) {
 		delete this->findReplaceDialog;
 	}
-
-	CWnd::OnClose();
+	delete this;
 }
 
 void TextEditingForm::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) {
@@ -202,6 +205,7 @@ void TextEditingForm::OnPaint() {
 	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
 
 	memDC.SelectObject(oldFont);
+	oldFont->DeleteObject();
 	memDC.SetTextColor(oldColor);
 
 	memDC.SelectObject(oldBitmap);

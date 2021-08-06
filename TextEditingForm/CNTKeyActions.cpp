@@ -854,3 +854,28 @@ CNTCtrlF3KeyAction& CNTCtrlF3KeyAction::operator =(const CNTCtrlF3KeyAction& sou
 void CNTCtrlF3KeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
 	this->textEditingForm->SendMessage(WM_COMMAND, MAKEWPARAM(IDCNT_FLAG_UNLOCKFINDREPLACEDIALOG, 0));
 }
+
+//CNTCtrlWKeyAction
+CNTCtrlWKeyAction::CNTCtrlWKeyAction(TextEditingForm* textEditingForm)
+	: CNTKeyAction(textEditingForm) {
+
+}
+
+CNTCtrlWKeyAction::CNTCtrlWKeyAction(const CNTCtrlWKeyAction& source)
+	: CNTKeyAction(source) {
+
+}
+
+CNTCtrlWKeyAction::~CNTCtrlWKeyAction() {
+
+}
+
+CNTCtrlWKeyAction& CNTCtrlWKeyAction::operator =(const CNTCtrlWKeyAction& source) {
+	CNTKeyAction::operator=(source);
+
+	return *this;
+}
+
+void CNTCtrlWKeyAction::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) {
+	this->textEditingForm->PostMessage(WM_CLOSE);
+}
